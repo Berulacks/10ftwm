@@ -68,14 +68,13 @@ int main (int argc, char **argv)
 	xcb_create_window( connection, XCB_COPY_FROM_PARENT, window1, mainGC, 0,0 , 150,150 , 14, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, mask, values);
 	xcb_map_window( connection, window1 );
 
-	//black = xcb_generate_id (connection);
-	//xcb_create_gc (connection, black, mainGC, XCB_GC_BACKGROUND, &screen->white_pixel);
-
-
 	xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_ANY, L_SHIFT,
 		 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
 	xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_ANY, R_ARROW,
+		 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+
+	xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_ANY, L_ARROW,
 		 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
 	xcb_grab_button(connection, 0, mainGC, XCB_EVENT_MASK_BUTTON_PRESS |
