@@ -34,9 +34,7 @@ int main (int argc, char **argv)
 
 	// #justeventthings
 	xcb_generic_event_t *ev;
-	//xcb_get_geometry_reply_t *geom;
 
-	xcb_gcontext_t    black;
 	xcb_void_cookie_t cookie;
 
 	xcb_generic_error_t *error;
