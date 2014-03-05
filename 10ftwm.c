@@ -1,19 +1,30 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <xcb/xcb.h>
+#include <xcb/xcb_keysyms.h>
+
+#include "list.h"
+
+#define L_SHIFT 40
+#define R_ARROW 114
+#define L_ARROW 113
 
 void setupWindows();
 void addWindow( xcb_window_t e );
+
+//Our primary screen
+xcb_screen_t* screen;
+//Our connection to the xServer
+xcb_connection_t *connection;
+
+//A list of windows
+struct node windowList;
 
 int main (int argc, char **argv)
 {
 	uint32_t values[2];
 	uint32_t mask = 0;
 
-	//Our connection to the xServer
-	xcb_connection_t *connection;
-	//Our primary screen
-	xcb_screen_t *screen;
 	//Our main graphics context
 	//So... the background?
 	xcb_drawable_t mainGC;
@@ -82,14 +93,15 @@ int main (int argc, char **argv)
 
 	values[0] = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT
 		  | XCB_EVENT_MASK_STRUCTURE_NOTIFY
-		  | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
+		  | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY
+		  | XCB_EVENT_MASK_KEY_PRESS;
 
 	cookie = xcb_change_window_attributes_checked(connection, mainGC, mask, values);
 	error = xcb_request_check(connection, cookie);
 
 	if(error != NULL)
 	{
-		printf("Are you, like, trying to run TWO window managers or something?");
+		printf("Are you, like, trying to run TWO window managers or something?\n");
 		exit(1);
 
 	}
@@ -99,7 +111,6 @@ int main (int argc, char **argv)
 
 	for (;;)
 	{
-		printf("Polling...\n");
 		ev = xcb_wait_for_event(connection);
 		switch (ev->response_type & ~0x80) 
 		{
@@ -110,11 +121,16 @@ int main (int argc, char **argv)
 		}
 		break;
 
-		case XCB_MOTION_NOTIFY:
+		case XCB_KEY_PRESS:
 		{
-			printf("Dat motion\n");
+			xcb_key_press_event_t* e;
+			e = (xcb_key_press_event_t*) ev;
+			printf("You pressed %i\n", e->detail);
+			
+
 		}
 		break;
+
 		case XCB_MAP_REQUEST:
 		{
 
@@ -122,15 +138,7 @@ int main (int argc, char **argv)
 			xcb_map_request_event_t *e;
 
 			e = (xcb_map_request_event_t *) ev;
-			//addWindow(e->window);
-			xcb_window_t win = e->window;
-			mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
-			values[0] = 10;
-			values[1] = 10;
-
-			xcb_configure_window( connection, win, mask, values);
-			xcb_map_window(connection, win);
-
+			addWindow(e->window);
 
 		}
 		break;
@@ -149,8 +157,25 @@ int main (int argc, char **argv)
 
 }
 
-void addWindow( xcb_window_t e )
+void addWindow( xcb_window_t window )
 {
+	uint32_t mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+	uint32_t values[2];
+	xcb_void_cookie_t cookie;
+	xcb_generic_error_t *error;
+
+	values[0] = screen->width_in_pixels;
+	values[1] = screen->height_in_pixels;
+
+	xcb_configure_window( connection, window, mask, values);
+	cookie = xcb_map_window(connection, window);
 	
+	appendToList(&windowList, window);
+
+	error = xcb_request_check(connection, cookie);
+	if(error != NULL)
+		printf("Something went wrong while adding a window!\n");
+	else
+		xcb_flush(connection);
 
 }
