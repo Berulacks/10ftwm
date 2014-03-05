@@ -94,6 +94,23 @@ void removeFromList(struct node* head, int index)
 	free(toDie);
 }
 
+int indexOf( struct node list, int data )
+{
+	int index;
+	int size = sizeOfList(list);
+	struct node* x = &list;
+
+	for(index = 0; index < size; index++)
+	{
+		x = x->next;
+		if(x->data == data)
+			return index;
+	}	
+
+	return index;
+
+}
+
 void printList ( struct node list )
 {
 	int size = sizeOfList(list);

@@ -10,12 +10,15 @@
 #define L_ARROW 113
 
 void setupWindows();
+void updateCurrentWindow(int index);
 void addWindow( xcb_window_t e );
 
 //Our primary screen
 xcb_screen_t* screen;
 //Our connection to the xServer
 xcb_connection_t *connection;
+//Our current window (always at front)
+int currentWindowIndex;
 
 //A list of windows
 struct node windowList;
@@ -71,11 +74,10 @@ int main (int argc, char **argv)
 	//xcb_create_gc (connection, black, mainGC, XCB_GC_BACKGROUND, &screen->white_pixel);
 
 
+	xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_ANY, L_SHIFT,
+		 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
-
-
-
-	xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_1, XCB_NO_SYMBOL,
+	xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_ANY, R_ARROW,
 		 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
 	xcb_grab_button(connection, 0, mainGC, XCB_EVENT_MASK_BUTTON_PRESS |
@@ -126,8 +128,10 @@ int main (int argc, char **argv)
 			xcb_key_press_event_t* e;
 			e = (xcb_key_press_event_t*) ev;
 			printf("You pressed %i\n", e->detail);
-			
-
+			if(e->detail == R_ARROW)
+				updateCurrentWindow(currentWindowIndex+1);
+			if(e->detail == L_ARROW)
+				updateCurrentWindow(currentWindowIndex-1);
 		}
 		break;
 
@@ -157,6 +161,21 @@ int main (int argc, char **argv)
 
 }
 
+void updateCurrentWindow(int index)
+{
+	currentWindowIndex = index;
+	if(currentWindowIndex >= sizeOfList(windowList) )
+		currentWindowIndex = 0;
+	if(currentWindowIndex < 0)
+		currentWindowIndex = sizeOfList(windowList)-1;
+
+	printf("Bringing window %i to front\n", currentWindowIndex);
+
+	uint32_t values[] = { XCB_STACK_MODE_TOP_IF };
+	xcb_configure_window (connection, getFromList( windowList, currentWindowIndex ), XCB_CONFIG_WINDOW_STACK_MODE, values);
+	xcb_flush(connection);
+}
+
 void addWindow( xcb_window_t window )
 {
 	uint32_t mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
@@ -177,5 +196,9 @@ void addWindow( xcb_window_t window )
 		printf("Something went wrong while adding a window!\n");
 	else
 		xcb_flush(connection);
+
+	printf("Added window at position %i\n", indexOf( windowList, window ) );
+	currentWindowIndex = indexOf( windowList, window );
+
 
 }
