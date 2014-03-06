@@ -241,18 +241,22 @@ int loop()
 			if(event.value == 1 && gpKeyLastPressed[ event.number ] == 0)
 			{
 				printf("You pressed button %i on the gamepad!\n", event.number);
-				switch(event.number)
-				{
-					case GP_KEY_A:
-						updateCurrentWindow(currentWindowIndex+1);
-						break;
-					case GP_KEY_B:
-						updateCurrentWindow(currentWindowIndex-1);
-						break;
-					case GP_KEY_HOME:
-						toggleOSD();
-						break;
-				}
+				//Only allow controller functions while the OSD is active
+				//...this does not apply to the Home key, which is responsible
+				//for toggling the OSD
+				if(osdActive || event.number == GP_KEY_HOME)
+					switch(event.number)
+					{
+						case GP_KEY_A:
+							updateCurrentWindow(currentWindowIndex+1);
+							break;
+						case GP_KEY_B:
+							updateCurrentWindow(currentWindowIndex-1);
+							break;
+						case GP_KEY_HOME:
+							toggleOSD();
+							break;
+					}
 				gpKeyLastPressed[ event.number ] = 1;
 			}
 			//If button release
