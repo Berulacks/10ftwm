@@ -8,6 +8,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <stdbool.h>
+
 #include <linux/joystick.h>
 
 #include "list.h"
@@ -16,14 +18,16 @@
 #define R_ARROW 114
 #define L_ARROW 113
 
-#define GP_TOTAL_KEYS 2
+#define GP_TOTAL_KEYS 10
 
 #define GP_KEY_A 0
 #define GP_KEY_B 1
+#define GP_KEY_HOME 8
 
 void setupWindows();
 void updateCurrentWindow(int index);
 void addWindow( xcb_window_t e );
+void toggleOSD();
 int loop();
 
 int joystick;
@@ -39,11 +43,15 @@ int currentWindowIndex;
 
 //A list of windows
 struct node windowList;
+xcb_window_t osd;
+
+bool osdActive;
 
 int main (int argc, char **argv)
 {
 	uint32_t values[2];
 	uint32_t mask = 0;
+	osdActive = false;
 
 	for(int i = 0; i < GP_TOTAL_KEYS; i++)
 		gpKeyLastPressed[i] = 0;
@@ -78,15 +86,13 @@ int main (int argc, char **argv)
 
 	mainGC = screen->root;	
 
-	xcb_window_t window1;
-	window1 = xcb_generate_id( connection );
+	osd = xcb_generate_id( connection );
 
 	mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
 	values[0] = screen->white_pixel;
 	values[1] = XCB_EVENT_MASK_BUTTON_PRESS;
 
-	xcb_create_window( connection, XCB_COPY_FROM_PARENT, window1, mainGC, 0,0 , 150,150 , 14, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, mask, values);
-	xcb_map_window( connection, window1 );
+	xcb_create_window( connection, XCB_COPY_FROM_PARENT, osd, mainGC, 0,0 , 150,150 , 14, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, mask, values);
 
 	xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_ANY, L_SHIFT,
 		 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
@@ -209,7 +215,6 @@ int loop()
 
 				e = (xcb_map_request_event_t *) ev;
 				addWindow(e->window);
-				printf("Added window %i\n", e->window);
 
 			}
 			break;
@@ -235,6 +240,7 @@ int loop()
 			//If button press
 			if(event.value == 1 && gpKeyLastPressed[ event.number ] == 0)
 			{
+				printf("You pressed button %i on the gamepad!\n", event.number);
 				switch(event.number)
 				{
 					case GP_KEY_A:
@@ -243,9 +249,11 @@ int loop()
 					case GP_KEY_B:
 						updateCurrentWindow(currentWindowIndex-1);
 						break;
+					case GP_KEY_HOME:
+						toggleOSD();
+						break;
 				}
 				gpKeyLastPressed[ event.number ] = 1;
-				printf("You pressed button %i on the gamepad!\n", event.number);
 			}
 			//If button release
 			else
@@ -281,6 +289,31 @@ void updateCurrentWindow(int index)
 
 	uint32_t values[] = { XCB_STACK_MODE_TOP_IF };
 	xcb_configure_window (connection, getFromList( windowList, currentWindowIndex ), XCB_CONFIG_WINDOW_STACK_MODE, values);
+
+	if( osdActive)
+		xcb_configure_window (connection, osd, XCB_CONFIG_WINDOW_STACK_MODE, values);
+		
+	xcb_flush(connection);
+}
+
+void toggleOSD()
+{
+	if( !osdActive )
+	{
+		xcb_map_window(connection, osd);
+		osdActive = true;
+		uint32_t values[] = { XCB_STACK_MODE_TOP_IF };
+		xcb_configure_window (connection, osd, XCB_CONFIG_WINDOW_STACK_MODE, values);
+
+		printf("OSD enabled.\n");
+	}
+	else
+	{
+		xcb_unmap_window(connection, osd);
+		osdActive = false;
+		printf("OSD disabled.\n");
+	}
+
 	xcb_flush(connection);
 }
 
@@ -296,8 +329,15 @@ void addWindow( xcb_window_t window )
 
 	xcb_configure_window( connection, window, mask, values);
 	cookie = xcb_map_window(connection, window);
-	
 	appendToList(&windowList, window);
+
+	if( osdActive)
+	{
+		//If our osd is supposed to be active,
+		//draw it on top of the current window
+		uint32_t value[] = { XCB_STACK_MODE_TOP_IF };
+		xcb_configure_window (connection, osd, XCB_CONFIG_WINDOW_STACK_MODE, value);
+	}
 
 	error = xcb_request_check(connection, cookie);
 	if(error != NULL)
@@ -305,7 +345,7 @@ void addWindow( xcb_window_t window )
 	else
 		xcb_flush(connection);
 
-	printf("Added window at position %i\n", indexOf( windowList, window ) );
+	printf("Added window %i into position %i. There are now a total of %i windows.\n", window, indexOf( windowList, window ), sizeOfList(windowList) );
 	currentWindowIndex = indexOf( windowList, window );
 
 
