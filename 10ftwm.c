@@ -16,7 +16,8 @@
 
 #include "list.h"
 
-#define OSD_FONT "7x13"
+#define OSD_FONT "12x24"
+#define OSD_H_W 100
 
 #define L_SHIFT 40
 #define R_ARROW 114
@@ -112,7 +113,7 @@ int main (int argc, char **argv)
 	values[1] = XCB_EVENT_MASK_BUTTON_PRESS;
 
 	//Create OSD
-	xcb_create_window( connection, XCB_COPY_FROM_PARENT, osd, mainGC, 0,0 , 150,150 , 14, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, mask, values);
+	xcb_create_window( connection, XCB_COPY_FROM_PARENT, osd, mainGC, 0,0 , OSD_H_W,OSD_H_W , 14, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, mask, values);
 
 	osdGC = xcb_generate_id(connection);
 	
@@ -330,7 +331,7 @@ void updateCurrentWindow(int index)
 
 	//This only works for numbers 0-9, should be changed in the future!
 	char curPos = (char)(((int)'0')+currentWindowIndex);
-	xcb_image_text_8(connection, sizeof(curPos), osd, osdGC, 50, 50, &curPos);
+	xcb_image_text_8(connection, sizeof(curPos), osd, osdGC, OSD_H_W/2, OSD_H_W/2, &curPos);
 		
 	xcb_flush(connection);
 }
@@ -346,7 +347,7 @@ void toggleOSD()
 		
 		//This only works for numbers 0-9, should be changed in the future!
 		char curPos = (char)(((int)'0')+currentWindowIndex);
-		xcb_image_text_8(connection, sizeof(curPos), osd, osdGC, 50, 50, &curPos);
+		xcb_image_text_8(connection, sizeof(curPos), osd, osdGC, OSD_H_W/2, OSD_H_W/2, &curPos);
 
 		printf("OSD enabled.\n");
 	}
@@ -389,7 +390,7 @@ void addWindow( xcb_window_t window )
 		xcb_flush(connection);
 
 	printf("Added window %i into position %i. There are now a total of %i windows.\n", window, indexOf( windowList, window ), sizeOfList(windowList) );
-	currentWindowIndex = indexOf( windowList, window );
+	updateCurrentWindow( indexOf( windowList, window ) );
 
 
 }
