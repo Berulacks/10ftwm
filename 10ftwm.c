@@ -3,6 +3,13 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#include <linux/joystick.h>
+
 #include "list.h"
 
 #define L_SHIFT 40
@@ -12,6 +19,9 @@
 void setupWindows();
 void updateCurrentWindow(int index);
 void addWindow( xcb_window_t e );
+int loop();
+
+int joystick;
 
 //Our primary screen
 xcb_screen_t* screen;
@@ -108,53 +118,89 @@ int main (int argc, char **argv)
 
 	xcb_flush(connection);
 
-	for (;;)
-	{
-		ev = xcb_wait_for_event(connection);
-		switch (ev->response_type & ~0x80) 
-		{
 
-		case XCB_BUTTON_PRESS:
-		{
-			printf("Dat button press\n");
-		}
-		break;
+	joystick = open ("/dev/input/js0", O_RDONLY);
+	if(joystick >= 0)
+		printf("Found joystick!\n");
+	else
+		printf("Could not find joystick :(\n");
 
-		case XCB_KEY_PRESS:
-		{
-			xcb_key_press_event_t* e;
-			e = (xcb_key_press_event_t*) ev;
-			printf("You pressed %i\n", e->detail);
-			if(e->detail == R_ARROW)
-				updateCurrentWindow(currentWindowIndex+1);
-			if(e->detail == L_ARROW)
-				updateCurrentWindow(currentWindowIndex-1);
-		}
-		break;
 
-		case XCB_MAP_REQUEST:
-		{
+	int looping = 1;
 
-			printf("OH MAN I MADE A FRIEND!\n");
-			xcb_map_request_event_t *e;
+	while(looping)
+		looping = loop();
+			
 
-			e = (xcb_map_request_event_t *) ev;
-			addWindow(e->window);
-
-		}
-		break;
-
-		case XCB_BUTTON_RELEASE:
-		{
-		    xcb_ungrab_pointer(connection, XCB_CURRENT_TIME);
-		    xcb_flush(connection);
-		}
-		break;
-
-		}
-	}
 
 	return 0;
+
+}
+
+int loop()
+{
+
+		xcb_generic_event_t *ev;
+		while( (ev = xcb_poll_for_event(connection)) )
+		{
+			switch (ev->response_type & ~0x80) 
+			{
+
+			case XCB_BUTTON_PRESS:
+			{
+				printf("Dat button press\n");
+				return 0;
+			}
+			break;
+
+			case XCB_KEY_PRESS:
+			{
+				xcb_key_press_event_t* e;
+				e = (xcb_key_press_event_t*) ev;
+				printf("You pressed %i\n", e->detail);
+				if(e->detail == R_ARROW)
+					updateCurrentWindow(currentWindowIndex+1);
+				if(e->detail == L_ARROW)
+					updateCurrentWindow(currentWindowIndex-1);
+			}
+			break;
+
+			case XCB_MAP_REQUEST:
+			{
+
+				printf("OH MAN I MADE A FRIEND!\n");
+				xcb_map_request_event_t *e;
+
+				e = (xcb_map_request_event_t *) ev;
+				addWindow(e->window);
+
+			}
+			break;
+
+			case XCB_BUTTON_RELEASE:
+			{
+			    xcb_ungrab_pointer(connection, XCB_CURRENT_TIME);
+			    xcb_flush(connection);
+			}
+			break;
+
+			}
+		}
+
+
+		struct js_event event;
+		read(joystick, &event, sizeof(event));
+
+		if(event.type == JS_EVENT_BUTTON)
+		{
+			printf("You pressed button: %i\n", event.number);
+			printf("Time: %i\n\n", event.time);
+			//return(0);
+		}
+
+
+
+		return 1;
 
 }
 
