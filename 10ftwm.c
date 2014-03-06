@@ -175,14 +175,41 @@ int loop()
 			}
 			break;
 
+			case XCB_DESTROY_NOTIFY:
+			{
+				xcb_destroy_notify_event_t *e;
+				e = (xcb_destroy_notify_event_t *) ev;
+
+				printf("Received window destroy notification for window %i.\n", e->window);
+
+				int index = indexOf( windowList, e->window ); 
+				if(index == -1)
+				{
+					printf("	Could not find window %i in list.\n", e->window);
+					break;
+				}
+
+				removeFromList( &windowList, index);
+				int numWindows = sizeOfList(windowList);
+				printf("Removed window %i from list. There are now a total of %i windows.\n", index, sizeOfList(windowList) );
+
+				if(currentWindowIndex >= numWindows)
+				       currentWindowIndex = numWindows-1; 	
+				else
+					if(currentWindowIndex < 0)
+						currentWindowIndex = 0;
+
+			}
+			break;
+
 			case XCB_MAP_REQUEST:
 			{
 
-				printf("OH MAN I MADE A FRIEND!\n");
 				xcb_map_request_event_t *e;
 
 				e = (xcb_map_request_event_t *) ev;
 				addWindow(e->window);
+				printf("Added window %i\n", e->window);
 
 			}
 			break;

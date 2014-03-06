@@ -83,8 +83,14 @@ void removeFromList(struct node* head, int index)
 	}
 
 	struct node* x = head;
-	//Iterate all the way to i-1
-	for( int i = 0; i < index; i++)
+
+	//If we're at the end of the list
+	//then stop iterating at the
+	//penultimate member
+	if(index == size-1)
+		index--;
+
+	for( int i = 0; i <= index; i++)
 		x = x->next;
 
 	struct node* toDie = x->next;
@@ -99,6 +105,7 @@ int indexOf( struct node list, int data )
 	int index;
 	int size = sizeOfList(list);
 	struct node* x = &list;
+	//printf("***\nSearching for match for %i...\n", data);
 
 	for(index = 0; index < size; index++)
 	{
@@ -106,8 +113,8 @@ int indexOf( struct node list, int data )
 		if(x->data == data)
 			return index;
 	}	
-
-	return index;
+	printf("[NOTICE]: Could not find index of data.\n");
+	return -1;
 
 }
 
