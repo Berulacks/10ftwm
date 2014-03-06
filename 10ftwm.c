@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 
@@ -13,6 +15,8 @@
 #include <linux/joystick.h>
 
 #include "list.h"
+
+#define OSD_FONT "7x13"
 
 #define L_SHIFT 40
 #define R_ARROW 114
@@ -43,13 +47,15 @@ int currentWindowIndex;
 
 //A list of windows
 struct node windowList;
-xcb_window_t osd;
 
+xcb_window_t osd;
 bool osdActive;
+xcb_font_t osdFont;
+xcb_gcontext_t osdGC;
 
 int main (int argc, char **argv)
 {
-	uint32_t values[2];
+	uint32_t values[3];
 	uint32_t mask = 0;
 	osdActive = false;
 
@@ -60,8 +66,6 @@ int main (int argc, char **argv)
 	//So... the background?
 	xcb_drawable_t mainGC;
 
-	// #justeventthings
-	xcb_generic_event_t *ev;
 
 	xcb_void_cookie_t cookie;
 
@@ -86,14 +90,40 @@ int main (int argc, char **argv)
 
 	mainGC = screen->root;	
 
+	//Get osd id
 	osd = xcb_generate_id( connection );
+	//Font id
+	osdFont = xcb_generate_id( connection );
+	//Open font
+	char* fontName = OSD_FONT;	
+	cookie = xcb_open_font(connection, osdFont, strlen(fontName), fontName);
+	error = xcb_request_check (connection, cookie);
+	if (error) 
+	{
+		printf ("ERROR: can't open font : %d\n", error->error_code);
+	}
+	else
+		printf("Loaded font '%s'.\n", fontName);
 
+
+	//OSD values
 	mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
 	values[0] = screen->white_pixel;
 	values[1] = XCB_EVENT_MASK_BUTTON_PRESS;
 
+	//Create OSD
 	xcb_create_window( connection, XCB_COPY_FROM_PARENT, osd, mainGC, 0,0 , 150,150 , 14, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, mask, values);
 
+	osdGC = xcb_generate_id(connection);
+	
+	mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_FONT;
+	values[0] = screen->black_pixel;
+	values[1] = screen->white_pixel;
+	values[2] = osdFont;
+	xcb_create_gc (connection, osdGC, osd, mask, values);
+
+	
+	//Grab keys/mouse buttons
 	xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_ANY, L_SHIFT,
 		 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
@@ -156,7 +186,9 @@ int main (int argc, char **argv)
 int loop()
 {
 
+		// #justeventthings
 		xcb_generic_event_t *ev;
+
 		while( (ev = xcb_poll_for_event(connection)) )
 		{
 			switch (ev->response_type & ~0x80) 
@@ -267,7 +299,6 @@ int loop()
 				gpKeyLastPressed[ event.number ] = 0;
 				}
 				
-			//return(0);
 		}
 
 
@@ -296,6 +327,10 @@ void updateCurrentWindow(int index)
 
 	if( osdActive)
 		xcb_configure_window (connection, osd, XCB_CONFIG_WINDOW_STACK_MODE, values);
+
+	//This only works for numbers 0-9, should be changed in the future!
+	char curPos = (char)(((int)'0')+currentWindowIndex);
+	xcb_image_text_8(connection, sizeof(curPos), osd, osdGC, 50, 50, &curPos);
 		
 	xcb_flush(connection);
 }
@@ -308,6 +343,10 @@ void toggleOSD()
 		osdActive = true;
 		uint32_t values[] = { XCB_STACK_MODE_TOP_IF };
 		xcb_configure_window (connection, osd, XCB_CONFIG_WINDOW_STACK_MODE, values);
+		
+		//This only works for numbers 0-9, should be changed in the future!
+		char curPos = (char)(((int)'0')+currentWindowIndex);
+		xcb_image_text_8(connection, sizeof(curPos), osd, osdGC, 50, 50, &curPos);
 
 		printf("OSD enabled.\n");
 	}
