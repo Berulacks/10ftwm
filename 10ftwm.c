@@ -16,12 +16,19 @@
 #define R_ARROW 114
 #define L_ARROW 113
 
+#define GP_TOTAL_KEYS 2
+
+#define GP_KEY_A 0
+#define GP_KEY_B 1
+
 void setupWindows();
 void updateCurrentWindow(int index);
 void addWindow( xcb_window_t e );
 int loop();
 
 int joystick;
+
+int gpKeyLastPressed[ GP_TOTAL_KEYS ];;
 
 //Our primary screen
 xcb_screen_t* screen;
@@ -37,6 +44,9 @@ int main (int argc, char **argv)
 {
 	uint32_t values[2];
 	uint32_t mask = 0;
+
+	for(int i = 0; i < GP_TOTAL_KEYS; i++)
+		gpKeyLastPressed[i] = 0;
 
 	//Our main graphics context
 	//So... the background?
@@ -119,7 +129,7 @@ int main (int argc, char **argv)
 	xcb_flush(connection);
 
 
-	joystick = open ("/dev/input/js0", O_RDONLY);
+	joystick = open ("/dev/input/js0", O_RDONLY | O_NONBLOCK);
 	if(joystick >= 0)
 		printf("Found joystick!\n");
 	else
@@ -189,12 +199,35 @@ int loop()
 
 
 		struct js_event event;
+		//Reading...
 		read(joystick, &event, sizeof(event));
+		//...books!
 
 		if(event.type == JS_EVENT_BUTTON)
 		{
-			printf("You pressed button: %i\n", event.number);
-			printf("Time: %i\n\n", event.time);
+			//If button press
+			if(event.value == 1 && gpKeyLastPressed[ event.number ] == 0)
+			{
+				switch(event.number)
+				{
+					case GP_KEY_A:
+						updateCurrentWindow(currentWindowIndex+1);
+						break;
+					case GP_KEY_B:
+						updateCurrentWindow(currentWindowIndex-1);
+						break;
+				}
+				gpKeyLastPressed[ event.number ] = 1;
+				printf("You pressed button %i on the gamepad!\n", event.number);
+			}
+			//If button release
+			else
+				if(event.value != 1 && gpKeyLastPressed[ event.number ] == 1)
+				{
+				printf("You released button %i on the gamepad!\n", event.number);
+				gpKeyLastPressed[ event.number ] = 0;
+				}
+				
 			//return(0);
 		}
 
@@ -206,6 +239,11 @@ int loop()
 
 void updateCurrentWindow(int index)
 {
+	//Sanity check to see if we have any windows
+	//to begin with
+	if(!sizeOfList(windowList))
+		return;
+
 	currentWindowIndex = index;
 	if(currentWindowIndex >= sizeOfList(windowList) )
 		currentWindowIndex = 0;
