@@ -36,6 +36,7 @@ void toggleOSD();
 int loop();
 
 int joystick;
+bool hasJoystick;
 
 int gpKeyLastPressed[ GP_TOTAL_KEYS ];;
 
@@ -166,9 +167,14 @@ int main (int argc, char **argv)
 	xcb_flush(connection);
 
 
+	hasJoystick = false;
+
 	joystick = open ("/dev/input/js0", O_RDONLY | O_NONBLOCK);
 	if(joystick >= 0)
+	{
 		printf("Found joystick!\n");
+		hasJoystick = true;
+	}
 	else
 		printf("Could not find joystick :(\n");
 
@@ -195,22 +201,22 @@ int loop()
 			switch (ev->response_type & ~0x80) 
 			{
 
-			case XCB_BUTTON_PRESS:
-			{
-				printf("Dat button press\n");
-				return 0;
-			}
-			break;
+				case XCB_BUTTON_PRESS:
+				{
+					printf("Dat button press\n");
+					return 0;
+				}
+				break;
 
-			case XCB_KEY_PRESS:
-			{
-				xcb_key_press_event_t* e;
-				e = (xcb_key_press_event_t*) ev;
-				printf("You pressed %i\n", e->detail);
-				if(e->detail == R_ARROW)
-					updateCurrentWindow(currentWindowIndex+1);
-				if(e->detail == L_ARROW)
-					updateCurrentWindow(currentWindowIndex-1);
+				case XCB_KEY_PRESS:
+				{
+					xcb_key_press_event_t* e;
+					e = (xcb_key_press_event_t*) ev;
+					printf("You pressed %i\n", e->detail);
+					if(e->detail == R_ARROW)
+						updateCurrentWindow(currentWindowIndex+1);
+					if(e->detail == L_ARROW)
+						updateCurrentWindow(currentWindowIndex-1);
 			}
 			break;
 
@@ -263,43 +269,46 @@ int loop()
 		}
 
 
-		struct js_event event;
-		//Reading...
-		read(joystick, &event, sizeof(event));
-		//...books!
-
-		if(event.type == JS_EVENT_BUTTON)
+		if(hasJoystick)
 		{
-			//If button press
-			if(event.value == 1 && gpKeyLastPressed[ event.number ] == 0)
+			struct js_event event;
+			//Reading...
+			read(joystick, &event, sizeof(event));
+			//...books!
+
+			if(event.type == JS_EVENT_BUTTON)
 			{
-				printf("You pressed button %i on the gamepad!\n", event.number);
-				//Only allow controller functions while the OSD is active
-				//...this does not apply to the Home key, which is responsible
-				//for toggling the OSD
-				if(osdActive || event.number == GP_KEY_HOME)
-					switch(event.number)
-					{
-						case GP_KEY_A:
-							updateCurrentWindow(currentWindowIndex+1);
-							break;
-						case GP_KEY_B:
-							updateCurrentWindow(currentWindowIndex-1);
-							break;
-						case GP_KEY_HOME:
-							toggleOSD();
-							break;
-					}
-				gpKeyLastPressed[ event.number ] = 1;
-			}
-			//If button release
-			else
-				if(event.value != 1 && gpKeyLastPressed[ event.number ] == 1)
+				//If button press
+				if(event.value == 1 && gpKeyLastPressed[ event.number ] == 0)
 				{
-				printf("You released button %i on the gamepad!\n", event.number);
-				gpKeyLastPressed[ event.number ] = 0;
+					printf("You pressed button %i on the gamepad!\n", event.number);
+					//Only allow controller functions while the OSD is active
+					//...this does not apply to the Home key, which is responsible
+					//for toggling the OSD
+					if(osdActive || event.number == GP_KEY_HOME)
+						switch(event.number)
+						{
+							case GP_KEY_A:
+								updateCurrentWindow(currentWindowIndex+1);
+								break;
+							case GP_KEY_B:
+								updateCurrentWindow(currentWindowIndex-1);
+								break;
+							case GP_KEY_HOME:
+								toggleOSD();
+								break;
+						}
+					gpKeyLastPressed[ event.number ] = 1;
 				}
-				
+				//If button release
+				else
+					if(event.value != 1 && gpKeyLastPressed[ event.number ] == 1)
+					{
+					printf("You released button %i on the gamepad!\n", event.number);
+					gpKeyLastPressed[ event.number ] = 0;
+					}
+					
+			}
 		}
 
 
