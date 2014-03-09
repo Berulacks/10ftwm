@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include <stdbool.h>
 
@@ -34,11 +35,15 @@ void updateCurrentWindow(int index);
 void addWindow( xcb_window_t e );
 void toggleOSD();
 int loop();
+bool processInput(int argc, char **argv);
 
 int joystick;
 bool hasJoystick;
 
 int gpKeyLastPressed[ GP_TOTAL_KEYS ];;
+
+int display;
+char* startScreen;
 
 //Our primary screen
 xcb_screen_t* screen;
@@ -54,6 +59,32 @@ xcb_window_t osd;
 bool osdActive;
 xcb_font_t osdFont;
 xcb_gcontext_t osdGC;
+
+bool processInput(int argc, char **argv)
+{
+	printf("Processing input...\n");
+	int opt;
+
+	startScreen = NULL;
+	display = 0;
+
+	while ((opt = getopt(argc, argv, "s:d:")) != -1) 
+	{
+		switch (opt) 
+		{
+		case 's':
+			printf("Opening on screen %s...\n", optarg);
+			startScreen = optarg;
+			break;
+		case 'd':
+			printf("Opening on display %i...\n", atoi(optarg));
+			display = atoi(optarg);
+			break;
+	       }
+	}
+
+return true;
+}
 
 int main (int argc, char **argv)
 {
@@ -74,10 +105,12 @@ int main (int argc, char **argv)
 	xcb_generic_error_t *error;
 
 	printf("Starting up!\n");
+
+	processInput(argc, argv);
 	
 	//Don't have a display name or number,
 	//so just go with what xcb gives us.
-	connection = xcb_connect( ":1", NULL );
+	connection = xcb_connect( startScreen, &display );
 
 	if( xcb_connection_has_error(connection) )
 	{
