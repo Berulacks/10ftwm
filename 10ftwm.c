@@ -62,13 +62,12 @@ xcb_gcontext_t osdGC;
 
 bool processInput(int argc, char **argv)
 {
-	printf("Processing input...\n");
 	int opt;
 
 	startScreen = NULL;
 	display = 0;
 
-	while ((opt = getopt(argc, argv, "s:d:")) != -1) 
+	while ((opt = getopt(argc, argv, "hs:d:")) != -1) 
 	{
 		switch (opt) 
 		{
@@ -79,6 +78,17 @@ bool processInput(int argc, char **argv)
 		case 'd':
 			printf("Opening on display %i...\n", atoi(optarg));
 			display = atoi(optarg);
+			break;
+		case 'h':
+			printf("\
+			\n10ftwm: A lightweight window manager designed to be used with media centers and other '10 foot' devices.\
+			\nUsage: 10ftwm -d [DISPLAY] -s [SCREEN NUMBER]\
+			\nDISPAY:\
+			\nThe display to open. Default is the contents of your $DISPLAY variable.\
+			\nSCREEN NUMBER:\
+			\nThe screen number to open. Default is 0.\n");
+
+			exit(0);
 			break;
 	       }
 	}
@@ -103,8 +113,6 @@ int main (int argc, char **argv)
 	xcb_void_cookie_t cookie;
 
 	xcb_generic_error_t *error;
-
-	printf("Starting up!\n");
 
 	processInput(argc, argv);
 	
