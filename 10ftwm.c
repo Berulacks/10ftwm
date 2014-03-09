@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -35,7 +36,10 @@ void updateCurrentWindow(int index);
 void addWindow( xcb_window_t e );
 void toggleOSD();
 int loop();
-bool processInput(int argc, char **argv);
+
+//Init
+void processInput(int argc, char **argv);
+void readFromFileAndConfigure(char* filename);
 
 int joystick;
 bool hasJoystick;
@@ -60,7 +64,7 @@ bool osdActive;
 xcb_font_t osdFont;
 xcb_gcontext_t osdGC;
 
-bool processInput(int argc, char **argv)
+void processInput(int argc, char **argv)
 {
 	int opt;
 
@@ -92,8 +96,34 @@ bool processInput(int argc, char **argv)
 			break;
 	       }
 	}
+}
 
-return true;
+
+void readFromFileAndConfigure(char* filename)
+{
+
+	FILE * fp;
+	char * line = NULL;
+	size_t len = 0;
+	ssize_t read;
+
+	fp = fopen(filename, "r");
+	if (fp == NULL)
+	{
+		printf("Couldn't open file!\n");
+		return;
+	}
+
+
+	while ((read = getline(&line, &len, fp)) != -1) {
+	   //printf("Retrieved line of length %zu :\n", read);
+	   //printf("%s", line);
+	}
+
+	if (line)
+	   free(line);
+
+	fclose(fp);
 }
 
 int main (int argc, char **argv)
@@ -115,6 +145,7 @@ int main (int argc, char **argv)
 	xcb_generic_error_t *error;
 
 	processInput(argc, argv);
+	readFromFileAndConfigure("10ftwmrc");
 	
 	//Don't have a display name or number,
 	//so just go with what xcb gives us.
