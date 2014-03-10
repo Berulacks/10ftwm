@@ -5,10 +5,7 @@
 #include <math.h>
 
 #include <xcb/xcb.h>
-#include <xcb/xcb_keysyms.h>
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <getopt.h>
