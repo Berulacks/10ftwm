@@ -17,8 +17,6 @@
 
 #include <linux/joystick.h>
 
-//#include "list.h"
-
 #define OSD_FONT "12x24"
 #define OSD_H_W 100
 
@@ -34,19 +32,19 @@
 
 
 /* --- List stuff --- */
-struct node
+typedef struct node
 {
 	int data;
 	struct node* next;
-};
+} linkedList;
 
-struct node* createList(int data);
-int sizeOfList(struct node head);
-int getFromList(struct node head, int index);
-void appendToList(struct node* head, int data);
-void removeFromList(struct node* head, int index);
-int indexOf( struct node list, int data );
-void printList ( struct node list );
+linkedList* createList(int data);
+int sizeOfList(linkedList head);
+int getFromList(linkedList head, int index);
+void appendToList(linkedList* head, int data);
+void removeFromList(linkedList* head, int index);
+int indexOf( linkedList list, int data );
+void printList ( linkedList list );
 /* --- End of List stuff --- */
 
 void setupWindows();
@@ -75,7 +73,7 @@ xcb_connection_t *connection;
 int currentWindowIndex;
 
 //A list of windows
-struct node windowList;
+linkedList windowList;
 
 xcb_window_t osd;
 bool osdActive;
@@ -218,20 +216,15 @@ int main (int argc, char **argv)
 
 	
 	//Grab keys/mouse buttons
-	xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_ANY, L_SHIFT,
+	xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_SHIFT, R_ARROW,
 		 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
-	xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_ANY, R_ARROW,
-		 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
-
-	xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_ANY, L_ARROW,
+	xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_SHIFT, L_ARROW,
 		 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
 	xcb_grab_button(connection, 0, mainGC, XCB_EVENT_MASK_BUTTON_PRESS |
 		XCB_EVENT_MASK_BUTTON_RELEASE, XCB_GRAB_MODE_ASYNC,
 		XCB_GRAB_MODE_ASYNC, mainGC, XCB_NONE, 1, XCB_MOD_MASK_1);
-
-
 
 	xcb_grab_button(connection, 0, mainGC, XCB_EVENT_MASK_BUTTON_PRESS |
 		XCB_EVENT_MASK_BUTTON_RELEASE, XCB_GRAB_MODE_ASYNC,
@@ -323,6 +316,7 @@ int loop()
 						xcb_key_press_event_t* e;
 						e = (xcb_key_press_event_t*) ev;
 						printf("You pressed %i\n", e->detail);
+
 						if(e->detail == R_ARROW)
 							updateCurrentWindow(currentWindowIndex+1);
 						if(e->detail == L_ARROW)
@@ -513,21 +507,21 @@ void addWindow( xcb_window_t window )
 }
 
 /* --- LIST STUFF --- */
-struct node* createList(int data)
+linkedList* createList(int data)
 {
-	struct node* x = malloc( sizeof( struct node ) );
+	linkedList* x = malloc( sizeof( linkedList ) );
 	x->data = data;
 	x->next = NULL;
 
 	return x;
 }
 
-int sizeOfList(struct node head)
+int sizeOfList(linkedList head)
 {
 	if(isnan(head.data) || isinf(head.data) )
 		return 0;
 	int size = 0;
-	struct node* x = &head;	
+	linkedList* x = &head;	
 
 	while(x->next != NULL)
 	{
@@ -538,7 +532,7 @@ int sizeOfList(struct node head)
 	return size;
 }
 
-int getFromList(struct node head, int index)
+int getFromList(linkedList head, int index)
 {
 	if(index >= sizeOfList(head))
 	{
@@ -548,7 +542,7 @@ int getFromList(struct node head, int index)
 		return -1;
 	}
 
-	struct node* x = &head;
+	linkedList* x = &head;
 
 	for(int i = 0; i <= index; i++)
 		x = x->next;
@@ -556,9 +550,9 @@ int getFromList(struct node head, int index)
 	return x->data;
 }
 
-void appendToList(struct node* head, int data)
+void appendToList(linkedList* head, int data)
 {
-	struct node* x = malloc( sizeof(struct node) );
+	linkedList* x = malloc( sizeof(linkedList) );
 	x->data = data;
 	x->next = NULL;
 
@@ -568,7 +562,7 @@ void appendToList(struct node* head, int data)
 	}
 	else
 	{
-		struct node* itr = head;
+		linkedList* itr = head;
 		for(int i = 0; i < sizeOfList(*head); i++)
 			itr = itr->next;
 		itr->next = x;
@@ -576,7 +570,7 @@ void appendToList(struct node* head, int data)
 	
 }
 
-void removeFromList(struct node* head, int index)
+void removeFromList(linkedList* head, int index)
 {
 	int size = sizeOfList(*head);
 	if(size == 0)
@@ -587,7 +581,7 @@ void removeFromList(struct node* head, int index)
 		return;
 	}
 
-	struct node* x = head;
+	linkedList* x = head;
 
 	//If we're at the end of the list
 	//then stop iterating at the
@@ -598,18 +592,18 @@ void removeFromList(struct node* head, int index)
 	for( int i = 0; i <= index; i++)
 		x = x->next;
 
-	struct node* toDie = x->next;
+	linkedList* toDie = x->next;
 	x->next = toDie->next;
 	
 	toDie->next = NULL;
 	free(toDie);
 }
 
-int indexOf( struct node list, int data )
+int indexOf( linkedList list, int data )
 {
 	int index;
 	int size = sizeOfList(list);
-	struct node* x = &list;
+	linkedList* x = &list;
 	//printf("***\nSearching for match for %i...\n", data);
 
 	for(index = 0; index < size; index++)
@@ -623,7 +617,7 @@ int indexOf( struct node list, int data )
 
 }
 
-void printList ( struct node list )
+void printList ( linkedList list )
 {
 	int size = sizeOfList(list);
 	printf("List has size of %i, and contains the data:\n", size);
