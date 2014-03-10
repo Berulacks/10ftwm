@@ -116,8 +116,10 @@ void readFromFileAndConfigure(char* filename)
 
 
 	while ((read = getline(&line, &len, fp)) != -1) {
-	   //printf("Retrieved line of length %zu :\n", read);
-	   //printf("%s", line);
+	   printf("Retrieved line of length %zu, and size %zu :\n", read, len);
+	   printf("%s", line);
+	   //if(line[0] = "screen")
+		//printf("DETECTED SCREEN\n");
 	}
 
 	if (line)
@@ -265,83 +267,101 @@ int main (int argc, char **argv)
 int loop()
 {
 
+		//Variables for
+		//select()
+		int fd;                        
+		fd_set in;                    
+		int found;                   
+
+		//Get X's file descriptor, we already have
+		//the joystick's one
+		fd = xcb_get_file_descriptor(connection);
+ 
+		int max = joystick > fd ? joystick : fd;
+
+		FD_ZERO(&in);
+		FD_SET(fd, &in);
+		FD_SET(joystick, &in);
+		found = select(max+1, &in, NULL, NULL, NULL);
+
+
 		// #justeventthings
 		xcb_generic_event_t *ev;
 
-		while( (ev = xcb_poll_for_event(connection)) )
-		{
-			switch (ev->response_type & ~0x80) 
+		if( FD_ISSET(fd, &in) )
+			while( (ev = xcb_poll_for_event(connection)) )
 			{
-
-				case XCB_BUTTON_PRESS:
+				switch (ev->response_type & ~0x80) 
 				{
-					printf("Dat button press\n");
-					return 0;
+
+					case XCB_BUTTON_PRESS:
+					{
+						printf("Dat button press\n");
+						return 0;
+					}
+					break;
+
+					case XCB_KEY_PRESS:
+					{
+						xcb_key_press_event_t* e;
+						e = (xcb_key_press_event_t*) ev;
+						printf("You pressed %i\n", e->detail);
+						if(e->detail == R_ARROW)
+							updateCurrentWindow(currentWindowIndex+1);
+						if(e->detail == L_ARROW)
+							updateCurrentWindow(currentWindowIndex-1);
 				}
 				break;
 
-				case XCB_KEY_PRESS:
+				case XCB_DESTROY_NOTIFY:
 				{
-					xcb_key_press_event_t* e;
-					e = (xcb_key_press_event_t*) ev;
-					printf("You pressed %i\n", e->detail);
-					if(e->detail == R_ARROW)
-						updateCurrentWindow(currentWindowIndex+1);
-					if(e->detail == L_ARROW)
-						updateCurrentWindow(currentWindowIndex-1);
-			}
-			break;
+					xcb_destroy_notify_event_t *e;
+					e = (xcb_destroy_notify_event_t *) ev;
 
-			case XCB_DESTROY_NOTIFY:
-			{
-				xcb_destroy_notify_event_t *e;
-				e = (xcb_destroy_notify_event_t *) ev;
+					printf("Received window destroy notification for window %i.\n", e->window);
 
-				printf("Received window destroy notification for window %i.\n", e->window);
+					int index = indexOf( windowList, e->window ); 
+					if(index == -1)
+					{
+						printf("	Could not find window %i in list.\n", e->window);
+						break;
+					}
 
-				int index = indexOf( windowList, e->window ); 
-				if(index == -1)
-				{
-					printf("	Could not find window %i in list.\n", e->window);
-					break;
+					removeFromList( &windowList, index);
+					int numWindows = sizeOfList(windowList);
+					printf("Removed window %i from list. There are now a total of %i windows.\n", index, sizeOfList(windowList) );
+
+					if(currentWindowIndex >= numWindows)
+					       currentWindowIndex = numWindows-1; 	
+					else
+						if(currentWindowIndex < 0)
+							currentWindowIndex = 0;
+
 				}
+				break;
 
-				removeFromList( &windowList, index);
-				int numWindows = sizeOfList(windowList);
-				printf("Removed window %i from list. There are now a total of %i windows.\n", index, sizeOfList(windowList) );
+				case XCB_MAP_REQUEST:
+				{
 
-				if(currentWindowIndex >= numWindows)
-				       currentWindowIndex = numWindows-1; 	
-				else
-					if(currentWindowIndex < 0)
-						currentWindowIndex = 0;
+					xcb_map_request_event_t *e;
 
+					e = (xcb_map_request_event_t *) ev;
+					addWindow(e->window);
+
+				}
+				break;
+
+				case XCB_BUTTON_RELEASE:
+				{
+				    xcb_ungrab_pointer(connection, XCB_CURRENT_TIME);
+				    xcb_flush(connection);
+				}
+				break;
+
+				}
 			}
-			break;
 
-			case XCB_MAP_REQUEST:
-			{
-
-				xcb_map_request_event_t *e;
-
-				e = (xcb_map_request_event_t *) ev;
-				addWindow(e->window);
-
-			}
-			break;
-
-			case XCB_BUTTON_RELEASE:
-			{
-			    xcb_ungrab_pointer(connection, XCB_CURRENT_TIME);
-			    xcb_flush(connection);
-			}
-			break;
-
-			}
-		}
-
-
-		if(hasJoystick)
+		if(hasJoystick && FD_ISSET(joystick, &in) )
 		{
 			struct js_event event;
 			//Reading...
@@ -382,7 +402,6 @@ int loop()
 					
 			}
 		}
-
 
 
 		return 1;
