@@ -11,24 +11,29 @@ It also comes with a little on-screen-display that is toggled by pressing the ho
 
 XCB is the only required library.
 
+
 ### Build instructions:
 
     gcc 10ftwm.c -Wall -std=c99 -ggdb -lxcb -o 10ftwm && ./10ftwm
     
 ...or just run the included makefile.
 
+======
+
 
 ### Usage instructions:
 
-Again, 10ftwm is still *very* early in development, but one can easily try it out with a program like [Xephyr](http://www.freedesktop.org/wiki/Software/Xephyr/), or in a new x instance. Please note that the program only runs on display :1 right now, so you'll have to name your x instance accordingly.
+Again, 10ftwm is still *very* early in development, but one can easily try it out with a program like [Xephyr](http://www.freedesktop.org/wiki/Software/Xephyr/), or in a new x instance.
 
-Usage: 10ftwm -d [DISPLAY] -s [SCREEN NUMBER]
+##### Usage: 10ftwm -d [DISPLAY NAME] -s [SCREEN NUMBER]
 
-DISPAY:
+[DISPLAY NAME]:
 The display to open. Default is the contents of your $DISPLAY variable.
 
-SCREEN NUMBER:
+[SCREEN NUMBER]:
 The screen number to open. Default is 0.
+
+======
 
 
 **To launch with Xephyr just open a terminal and type:**
