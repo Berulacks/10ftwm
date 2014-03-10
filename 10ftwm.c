@@ -64,8 +64,8 @@ bool hasJoystick;
 
 int gpKeyLastPressed[ GP_TOTAL_KEYS ];;
 
-int display;
-char* startScreen;
+int screen_number;
+char* displayName;
 
 //Our primary screen
 xcb_screen_t* screen;
@@ -86,26 +86,26 @@ void processInput(int argc, char **argv)
 {
 	int opt;
 
-	startScreen = NULL;
-	display = 0;
+	displayName = NULL;
+	screen_number = 0;
 
 	while ((opt = getopt(argc, argv, "hs:d:")) != -1) 
 	{
 		switch (opt) 
 		{
 		case 's':
-			printf("Opening on screen %s...\n", optarg);
-			startScreen = optarg;
+			printf("Opening on display %s...\n", optarg);
+			displayName = optarg;
 			break;
 		case 'd':
-			printf("Opening on display %i...\n", atoi(optarg));
-			display = atoi(optarg);
+			printf("Opening on screen number %i...\n", atoi(optarg));
+			screen_number = atoi(optarg);
 			break;
 		case 'h':
 			printf("\
 			\n10ftwm: A lightweight window manager designed to be used with media centers and other '10 foot' devices.\
-			\nUsage: 10ftwm -d [DISPLAY] -s [SCREEN NUMBER]\
-			\nDISPAY:\
+			\nUsage: 10ftwm -d [DISPLAY NAME] -s [SCREEN NUMBER]\
+			\nDISPAY NAME:\
 			\nThe display to open. Default is the contents of your $DISPLAY variable.\
 			\nSCREEN NUMBER:\
 			\nThe screen number to open. Default is 0.\n");
@@ -169,7 +169,7 @@ int main (int argc, char **argv)
 	
 	//Don't have a display name or number,
 	//so just go with what xcb gives us.
-	connection = xcb_connect( startScreen, &display );
+	connection = xcb_connect(displayName, &screen_number);
 
 	if( xcb_connection_has_error(connection) )
 	{
