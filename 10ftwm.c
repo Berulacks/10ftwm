@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
@@ -16,7 +17,7 @@
 
 #include <linux/joystick.h>
 
-#include "list.h"
+//#include "list.h"
 
 #define OSD_FONT "12x24"
 #define OSD_H_W 100
@@ -30,6 +31,23 @@
 #define GP_KEY_A 0
 #define GP_KEY_B 1
 #define GP_KEY_HOME 8
+
+
+/* --- List stuff --- */
+struct node
+{
+	int data;
+	struct node* next;
+};
+
+struct node* createList(int data);
+int sizeOfList(struct node head);
+int getFromList(struct node head, int index);
+void appendToList(struct node* head, int data);
+void removeFromList(struct node* head, int index);
+int indexOf( struct node list, int data );
+void printList ( struct node list );
+/* --- End of List stuff --- */
 
 void setupWindows();
 void updateCurrentWindow(int index);
@@ -271,7 +289,6 @@ int loop()
 		//select()
 		int fd;                        
 		fd_set in;                    
-		int found;                   
 
 		//Get X's file descriptor, we already have
 		//the joystick's one
@@ -282,7 +299,7 @@ int loop()
 		FD_ZERO(&in);
 		FD_SET(fd, &in);
 		FD_SET(joystick, &in);
-		found = select(max+1, &in, NULL, NULL, NULL);
+		select(max+1, &in, NULL, NULL, NULL);
 
 
 		// #justeventthings
@@ -494,3 +511,123 @@ void addWindow( xcb_window_t window )
 
 
 }
+
+/* --- LIST STUFF --- */
+struct node* createList(int data)
+{
+	struct node* x = malloc( sizeof( struct node ) );
+	x->data = data;
+	x->next = NULL;
+
+	return x;
+}
+
+int sizeOfList(struct node head)
+{
+	if(isnan(head.data) || isinf(head.data) )
+		return 0;
+	int size = 0;
+	struct node* x = &head;	
+
+	while(x->next != NULL)
+	{
+		size++;
+		x = x->next;
+	}
+
+	return size;
+}
+
+int getFromList(struct node head, int index)
+{
+	if(index >= sizeOfList(head))
+	{
+		printf("ERROR: index out of range\n");
+		//This will always break something since we only ever
+		//use lists with unsigned ints.
+		return -1;
+	}
+
+	struct node* x = &head;
+
+	for(int i = 0; i <= index; i++)
+		x = x->next;
+
+	return x->data;
+}
+
+void appendToList(struct node* head, int data)
+{
+	struct node* x = malloc( sizeof(struct node) );
+	x->data = data;
+	x->next = NULL;
+
+	if(head->next == NULL)
+	{
+		head->next = x;
+	}
+	else
+	{
+		struct node* itr = head;
+		for(int i = 0; i < sizeOfList(*head); i++)
+			itr = itr->next;
+		itr->next = x;
+	}
+	
+}
+
+void removeFromList(struct node* head, int index)
+{
+	int size = sizeOfList(*head);
+	if(size == 0)
+		return;
+	if( size == 1 )
+	{
+		head->next = NULL;
+		return;
+	}
+
+	struct node* x = head;
+
+	//If we're at the end of the list
+	//then stop iterating at the
+	//penultimate member
+	if(index == size-1)
+		index--;
+
+	for( int i = 0; i <= index; i++)
+		x = x->next;
+
+	struct node* toDie = x->next;
+	x->next = toDie->next;
+	
+	toDie->next = NULL;
+	free(toDie);
+}
+
+int indexOf( struct node list, int data )
+{
+	int index;
+	int size = sizeOfList(list);
+	struct node* x = &list;
+	//printf("***\nSearching for match for %i...\n", data);
+
+	for(index = 0; index < size; index++)
+	{
+		x = x->next;
+		if(x->data == data)
+			return index;
+	}	
+	printf("[NOTICE]: Could not find index of data.\n");
+	return -1;
+
+}
+
+void printList ( struct node list )
+{
+	int size = sizeOfList(list);
+	printf("List has size of %i, and contains the data:\n", size);
+	for(int i = 0; i < size; i++)
+		printf("[ %i ]\n", getFromList(list, i) );
+}
+/* --- END OF LIST STUFF --- */
