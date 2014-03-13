@@ -14,10 +14,12 @@
 
 #include <linux/joystick.h>
 
-#define OSD_FONT "12x24"
+//#define OSD_FONT "12x24"
+#define OSD_FONT "-urw-urw palladio l-medium-r-normal--0-0-0-0-p-0-iso8859-16"
 #define OSD_H_W 100
 
 #define L_SHIFT 40
+#define UP 111
 #define R_ARROW 114
 #define L_ARROW 113
 
@@ -219,6 +221,9 @@ int main (int argc, char **argv)
 	xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_SHIFT, L_ARROW,
 		 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
+	xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_SHIFT, UP,
+		 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+
 	xcb_grab_button(connection, 0, mainGC, XCB_EVENT_MASK_BUTTON_PRESS |
 		XCB_EVENT_MASK_BUTTON_RELEASE, XCB_GRAB_MODE_ASYNC,
 		XCB_GRAB_MODE_ASYNC, mainGC, XCB_NONE, 1, XCB_MOD_MASK_1);
@@ -318,6 +323,8 @@ int loop()
 							updateCurrentWindow(currentWindowIndex+1);
 						if(e->detail == L_ARROW)
 							updateCurrentWindow(currentWindowIndex-1);
+						if(e->detail == UP)
+							toggleOSD();
 				}
 				break;
 
