@@ -14,8 +14,8 @@
 
 #include <linux/joystick.h>
 
-//#define OSD_FONT "12x24"
-#define OSD_FONT "-urw-urw palladio l-medium-r-normal--0-0-0-0-p-0-iso8859-16"
+#define OSD_FONT "12x24"
+//#define OSD_FONT "-urw-urw palladio l-medium-r-normal--0-0-0-0-p-0-iso8859-16"
 #define OSD_H_W 100
 
 #define L_SHIFT 40
