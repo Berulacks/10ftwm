@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <ctype.h>
 
 #include <xcb/xcb.h>
 
@@ -125,16 +126,39 @@ void readFromFileAndConfigure(char* filename)
 	fp = fopen(filename, "r");
 	if (fp == NULL)
 	{
-		printf("Couldn't open file!\n");
+		printf("Couldn't open configuration file!\n");
 		return;
 	}
+	printf("Found configuration file '%s'!\n", filename);
 
+
+	//This is a pointer to the equals sign in the string
+	//(or the last space after the equals sign)
+	//basically: this is the last character before the value of
+	// option = value
+	char* equalSign;
+	//The value to set
+	char* value;
 
 	while ((read = getline(&line, &len, fp)) != -1) {
-	   printf("Retrieved line of length %zu, and size %zu :\n", read, len);
+	   //printf("Retrieved line of length %zu, and size %zu :\n", read, len);
 	   printf("%s", line);
-	   //if(line[0] = "screen")
-		//printf("DETECTED SCREEN\n");
+	   if( strncmp("screen", line, strlen("screen")) == 0 )
+	   {
+		   printf("Found screen!\n");
+		   equalSign = strchr(line, '=');
+		   value = strtok(equalSign, "=");
+		   value = strtok(value, " ");
+		   while( value != NULL && isspace(value[0]) )
+		   {
+			   value = strtok(NULL, " ");
+		   }
+		   
+		   printf("value is: '%s'", value);
+		   
+		   if( isdigit(value[0]) )
+			   printf("VALUE IS A NUMBER!\n");
+	   }
 	}
 
 	if (line)
@@ -299,7 +323,7 @@ int loop()
 			select(max+1, &in, NULL, NULL, NULL);
 		}
 		else
-			select(fd, &in, NULL,NULL,NULL);
+			select(fd+1, &in, NULL,NULL,NULL);
 
 		// #justeventthings
 		xcb_generic_event_t *ev;
