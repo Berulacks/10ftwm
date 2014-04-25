@@ -289,13 +289,17 @@ int loop()
 		//the joystick's one
 		fd = xcb_get_file_descriptor(connection);
  
-		int max = joystick > fd ? joystick : fd;
-
 		FD_ZERO(&in);
 		FD_SET(fd, &in);
-		FD_SET(joystick, &in);
-		select(max+1, &in, NULL, NULL, NULL);
 
+		if(hasJoystick)
+		{
+			int max = joystick > fd ? joystick : fd;
+			FD_SET(joystick, &in);
+			select(max+1, &in, NULL, NULL, NULL);
+		}
+		else
+			select(fd, &in, NULL,NULL,NULL);
 
 		// #justeventthings
 		xcb_generic_event_t *ev;
