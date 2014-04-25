@@ -359,9 +359,9 @@ int loop()
 				{
 
 					xcb_map_request_event_t *e;
+					e = (xcb_map_request_event_t *) ev;
 
 					printf("Received map request for window %i.\n", e->window);
-					e = (xcb_map_request_event_t *) ev;
 					addWindow(e->window);
 
 				}
