@@ -19,17 +19,23 @@
 //#define OSD_FONT "-urw-urw palladio l-medium-r-normal--0-0-0-0-p-0-iso8859-16"
 #define OSD_H_W 100
 
+//Keypoard buttons
 #define L_SHIFT 40
 #define UP 111
 #define R_ARROW 114
 #define L_ARROW 113
 
+//Gamepad buttons
 #define GP_TOTAL_KEYS 10
-
 #define GP_KEY_A 0
 #define GP_KEY_B 1
 #define GP_KEY_HOME 8
 
+//Function modifiers
+#define TOTAL_FUNCTIONS 3
+#define SHOW_OSD 0
+#define NEXT_WORKSPACE 1
+#define PREVIOUS_WORKSPACE 2
 
 /* --- List stuff --- */
 typedef struct node
@@ -61,7 +67,8 @@ void parseKeyValueConfigPair(char* key, char* value);
 int joystick;
 bool hasJoystick;
 
-int gpKeyLastPressed[ GP_TOTAL_KEYS ];;
+int gpKeyLastPressed[ GP_TOTAL_KEYS ];
+int gpKeyMap[ TOTAL_FUNCTIONS ];
 
 char* displayName;
 
@@ -144,28 +151,19 @@ void readFromFileAndConfigure(char* filename)
 	//The value to set
 	char* value;
 
-	while ((read = getline(&line, &len, fp)) != -1) {
-	   //printf("Retrieved line of length %zu, and size %zu :\n", read, len);
-	   printf("%s", line);
-	   if( strncmp("screen", line, strlen("screen")) == 0 )
-	   {
-		   printf("Found screen!\n");
-		   equalSign = strchr(line, '=');
-		   value = strtok(equalSign, "=");
-		   value = strtok(value, " ");
-		   while( value != NULL && isspace(value[0]) )
-		   {
-			   value = strtok(NULL, " ");
-		   }
-		   
-		   //printf("value is: '%s'", value);
-		   
-		   //if( isdigit(value[0]) )
-			//   printf("VALUE IS A NUMBER!\n");
-
-		   //printf("Is this your screen number? '%i'\n", atoi(value));
-		   parseKeyValueConfigPair( line, value );
-	   }
+	while ((read = getline(&line, &len, fp)) != -1) 
+	{
+		
+		//printf("Retrieved line of length %zu, and size %zu :\n", read, len);
+		equalSign = strchr(line, '=');
+		value = strtok(equalSign, "=");
+		value = strtok(value, " ");
+		while( value != NULL && isspace(value[0]) )
+		{
+			value = strtok(NULL, " ");
+		}
+	   
+		parseKeyValueConfigPair( line, value );
 	}
 
 	if (line)
@@ -176,12 +174,28 @@ void readFromFileAndConfigure(char* filename)
 
 void parseKeyValueConfigPair(char* key, char* value)
 {
-	if(strcmp(key, "screen"))
+	if( strncmp("screen", key, strlen("screen")) == 0 )
 	{
-		printf("[CONF] Opening on screen #%i...\n", atoi(value));
+		printf("[CONF] Opening on screen #%i\n", atoi(value));
 		screen_number = atoi(value);
 	}
+	else if( strncmp("OSD_button", key, strlen("OSD_button")) == 0 )
+	{
+		printf("[CONF] Gamepad OSD Toggle Button set to button #%i\n", atoi(value));
+		gpKeyMap[ SHOW_OSD ] = atoi(value);
+	}
 
+	else if( strncmp("OSD_next_ws", key, strlen("OSD_next_ws")) == 0 )
+	{
+		printf("[CONF] Gamepad OSD Next Workspace Button set to button #%i\n", atoi(value));
+		gpKeyMap[ NEXT_WORKSPACE ] = atoi(value);
+	}
+
+	else if( strncmp("OSD_previous_ws", key, strlen("OSD_previous_ws")) == 0 )
+	{
+		printf("[CONF] Gamepad OSD Previous Workspace Button set to button #%i\n", atoi(value));
+		gpKeyMap[ PREVIOUS_WORKSPACE ] = atoi(value);
+	}
 }
 
 int main (int argc, char **argv)
@@ -192,6 +206,12 @@ int main (int argc, char **argv)
 
 	for(int i = 0; i < GP_TOTAL_KEYS; i++)
 		gpKeyLastPressed[i] = 0;
+	for(int i = 0; i < TOTAL_FUNCTIONS; i++)
+		gpKeyMap[i] = 0;
+
+	gpKeyMap[SHOW_OSD] = GP_KEY_HOME;
+	gpKeyMap[NEXT_WORKSPACE] = GP_KEY_B;
+	gpKeyMap[PREVIOUS_WORKSPACE] = GP_KEY_A;
 
 	//Our main graphics context
 	//So... the background?
@@ -438,19 +458,21 @@ int loop()
 					//Only allow controller functions while the OSD is active
 					//...this does not apply to the Home key, which is responsible
 					//for toggling the OSD
-					if(osdActive || event.number == GP_KEY_HOME)
-						switch(event.number)
+					if(osdActive || event.number == gpKeyMap[SHOW_OSD])
+					{
+						if(event.number == gpKeyMap[NEXT_WORKSPACE])
 						{
-							case GP_KEY_A:
-								updateCurrentWindow(currentWindowIndex+1);
-								break;
-							case GP_KEY_B:
-								updateCurrentWindow(currentWindowIndex-1);
-								break;
-							case GP_KEY_HOME:
-								toggleOSD();
-								break;
+							updateCurrentWindow(currentWindowIndex+1);
 						}
+						else if(event.number == gpKeyMap[PREVIOUS_WORKSPACE])
+						{
+								updateCurrentWindow(currentWindowIndex-1);
+						}
+						else if(event.number == gpKeyMap[SHOW_OSD])
+						{
+								toggleOSD();
+						}
+					}
 					gpKeyLastPressed[ event.number ] = 1;
 				}
 				//If button release
@@ -506,9 +528,19 @@ void toggleOSD()
 		uint32_t values[] = { XCB_STACK_MODE_TOP_IF };
 		xcb_configure_window (connection, osd, XCB_CONFIG_WINDOW_STACK_MODE, values);
 		
-		//This only works for numbers 0-9, should be changed in the future!
-		char curPos = (char)(((int)'0')+currentWindowIndex);
-		xcb_image_text_8(connection, sizeof(curPos), osd, osdGC, OSD_H_W/2, OSD_H_W/2, &curPos);
+
+		if(sizeOfList(windowList) > 0)
+		{
+			char curPos;
+			//This only works for numbers 0-9, should be changed in the future!
+			curPos = (char)(((int)'0')+currentWindowIndex);
+			xcb_image_text_8(connection, sizeof(curPos), osd, osdGC, OSD_H_W/2, OSD_H_W/2, &curPos);
+		}
+		else
+		{
+			char* naTxt = "N/A";
+			xcb_image_text_8(connection, sizeof(naTxt), osd, osdGC, OSD_H_W/2, OSD_H_W/2, naTxt);
+		}
 
 		printf("OSD enabled.\n");
 	}
