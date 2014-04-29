@@ -56,14 +56,18 @@ int loop();
 //Init
 void processInput(int argc, char **argv);
 void readFromFileAndConfigure(char* filename);
+void parseKeyValueConfigPair(char* key, char* value);
 
 int joystick;
 bool hasJoystick;
 
 int gpKeyLastPressed[ GP_TOTAL_KEYS ];;
 
-int screen_number;
 char* displayName;
+
+//CONFIG
+int screen_number;
+//END_CONFIG
 
 //Our primary screen
 xcb_screen_t* screen;
@@ -154,10 +158,13 @@ void readFromFileAndConfigure(char* filename)
 			   value = strtok(NULL, " ");
 		   }
 		   
-		   printf("value is: '%s'", value);
+		   //printf("value is: '%s'", value);
 		   
-		   if( isdigit(value[0]) )
-			   printf("VALUE IS A NUMBER!\n");
+		   //if( isdigit(value[0]) )
+			//   printf("VALUE IS A NUMBER!\n");
+
+		   //printf("Is this your screen number? '%i'\n", atoi(value));
+		   parseKeyValueConfigPair( line, value );
 	   }
 	}
 
@@ -165,6 +172,16 @@ void readFromFileAndConfigure(char* filename)
 	   free(line);
 
 	fclose(fp);
+}
+
+void parseKeyValueConfigPair(char* key, char* value)
+{
+	if(strcmp(key, "screen"))
+	{
+		printf("[CONF] Opening on screen #%i...\n", atoi(value));
+		screen_number = atoi(value);
+	}
+
 }
 
 int main (int argc, char **argv)
