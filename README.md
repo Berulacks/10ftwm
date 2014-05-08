@@ -44,4 +44,4 @@ Then run the included makefile.
 
 **To launch through a plain old X server, first compile the program, then run:**
 
-    xinit ./10ftwm -s:1 -- :1
+    xinit ./10ftwm -d:1 -- :1
