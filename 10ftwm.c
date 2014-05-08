@@ -64,6 +64,8 @@ void processInput(int argc, char **argv);
 void readFromFileAndConfigure(char* filename);
 void parseKeyValueConfigPair(char* key, char* value);
 
+char* strip( const char* str, const char* stripof);
+
 int joystick;
 bool hasJoystick;
 
@@ -86,10 +88,15 @@ int currentWindowIndex;
 //A list of windows
 linkedList windowList;
 
+//Our on-screen-display
 xcb_window_t osd;
 bool osdActive;
 xcb_font_t osdFont;
+//The graphics context used by the OSD
 xcb_gcontext_t osdGC;
+
+//The file to look for, for reading controller values
+char* js_fd = "/dev/input/js0";
 
 void processInput(int argc, char **argv)
 {
@@ -102,11 +109,11 @@ void processInput(int argc, char **argv)
 	{
 		switch (opt) 
 		{
-		case 's':
+		case 'd':
 			printf("Opening on display %s...\n", optarg);
 			displayName = optarg;
 			break;
-		case 'd':
+		case 's':
 			printf("Opening on screen number %i...\n", atoi(optarg));
 			screen_number = atoi(optarg);
 			break;
@@ -162,6 +169,10 @@ void readFromFileAndConfigure(char* filename)
 		{
 			value = strtok(NULL, " ");
 		}
+		
+		//Strip the incoming string of any trailing newline characters
+		//(Happens, I don't know why)
+		value = strip( value, "\n");
 	   
 		parseKeyValueConfigPair( line, value );
 	}
@@ -179,6 +190,11 @@ void parseKeyValueConfigPair(char* key, char* value)
 		printf("[CONF] Opening on screen #%i\n", atoi(value));
 		screen_number = atoi(value);
 	}
+	else if( strncmp("display", key, strlen("display")) == 0 )
+	{
+		printf("[CONF] Opening on display: %s\n", value);
+		displayName = value;
+	}
 	else if( strncmp("OSD_button", key, strlen("OSD_button")) == 0 )
 	{
 		printf("[CONF] Gamepad OSD Toggle Button set to button #%i\n", atoi(value));
@@ -195,6 +211,12 @@ void parseKeyValueConfigPair(char* key, char* value)
 	{
 		printf("[CONF] Gamepad OSD Previous Workspace Button set to button #%i\n", atoi(value));
 		gpKeyMap[ PREVIOUS_WORKSPACE ] = atoi(value);
+	}
+
+	else if( strncmp("js_file", key, strlen("js_file")) == 0 )
+	{
+		printf("[CONF] Joystick (controller) file to be read: %s\n", value);
+		js_fd = value;
 	}
 }
 
@@ -586,6 +608,44 @@ void addWindow( xcb_window_t window )
 	updateCurrentWindow( indexOf( windowList, window ) );
 
 
+}
+
+//Strip from string str any chars contained in stripof
+char* strip (const char *str, const char *stripof)
+{
+	//The length of the string we're stripping
+	const int length = strlen(str);
+	//The length of the array holding the chars
+	//we're stripping
+	const int lengthSt = strlen(stripof);
+	int occurences = 0;
+	bool safe;
+	char *final;
+	int i, j;
+
+	for (i = 0; i < length; i++)
+		for(j = 0; j < lengthSt; j++)
+			if(str[i] == stripof[j])
+				occurences++;
+
+	final = malloc(length-occurences);
+	j = 0;
+
+	for (i = 0; i < length; i++)
+	{
+		safe = true;
+		for(int j = 0; j < lengthSt; j++)
+			if(str[i] == stripof[j])
+				safe=false;
+
+		if(safe)
+		{
+			final[j] = str[i];
+			j++;
+		}
+	}
+
+	return final;
 }
 
 /* --- LIST STUFF --- */
