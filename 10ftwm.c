@@ -528,7 +528,7 @@ void updateCurrentWindow(int index)
 
 	printf("Bringing window %i to front\n", currentWindowIndex);
 
-	uint32_t values[] = { XCB_STACK_MODE_TOP_IF };
+	uint32_t values[] = { XCB_STACK_MODE_ABOVE };
 	xcb_configure_window (connection, getFromList( windowList, currentWindowIndex ), XCB_CONFIG_WINDOW_STACK_MODE, values);
 
 	if( osdActive)
@@ -547,7 +547,7 @@ void toggleOSD()
 	{
 		xcb_map_window(connection, osd);
 		osdActive = true;
-		uint32_t values[] = { XCB_STACK_MODE_TOP_IF };
+		uint32_t values[] = { XCB_STACK_MODE_ABOVE };
 		xcb_configure_window (connection, osd, XCB_CONFIG_WINDOW_STACK_MODE, values);
 		
 
@@ -594,7 +594,7 @@ void addWindow( xcb_window_t window )
 	{
 		//If our osd is supposed to be active,
 		//draw it on top of the current window
-		uint32_t value[] = { XCB_STACK_MODE_TOP_IF };
+		uint32_t value[] = { XCB_STACK_MODE_ABOVE };
 		xcb_configure_window (connection, osd, XCB_CONFIG_WINDOW_STACK_MODE, value);
 	}
 
