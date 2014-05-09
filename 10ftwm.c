@@ -321,6 +321,7 @@ int main (int argc, char **argv)
 	values[0] = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT
 		  | XCB_EVENT_MASK_STRUCTURE_NOTIFY
 		  | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY
+		  | XCB_EVENT_MASK_EXPOSURE
 		  | XCB_EVENT_MASK_KEY_PRESS;
 
 	cookie = xcb_change_window_attributes_checked(connection, mainGC, mask, values);
@@ -454,6 +455,19 @@ int loop()
 				}
 				break;
 
+				case XCB_MAP_NOTIFY:
+				{
+					xcb_map_notify_event_t *e;
+					e = (xcb_map_notify_event_t *) ev;
+
+					if( indexOf( windowList, e->window ) == -1 && e->window != osd)
+					{
+						addWindow(e->window);
+						printf("Received map notify for window %i.\n", e->window);
+					}
+
+				}
+
 				case XCB_BUTTON_RELEASE:
 				{
 				    xcb_ungrab_pointer(connection, XCB_CURRENT_TIME);
@@ -526,10 +540,12 @@ void updateCurrentWindow(int index)
 	if(currentWindowIndex < 0)
 		currentWindowIndex = sizeOfList(windowList)-1;
 
+
 	printf("Bringing window %i to front\n", currentWindowIndex);
 
 	uint32_t values[] = { XCB_STACK_MODE_ABOVE };
 	xcb_configure_window (connection, getFromList( windowList, currentWindowIndex ), XCB_CONFIG_WINDOW_STACK_MODE, values);
+	
 
 	if( osdActive)
 		xcb_configure_window (connection, osd, XCB_CONFIG_WINDOW_STACK_MODE, values);
@@ -537,7 +553,7 @@ void updateCurrentWindow(int index)
 	//This only works for numbers 0-9, should be changed in the future!
 	char curPos = (char)(((int)'0')+currentWindowIndex);
 	xcb_image_text_8(connection, sizeof(curPos), osd, osdGC, OSD_H_W/2, OSD_H_W/2, &curPos);
-		
+
 	xcb_flush(connection);
 }
 
@@ -754,7 +770,7 @@ int indexOf( linkedList list, int data )
 		if(x->data == data)
 			return index;
 	}	
-	printf("[NOTICE]: Could not find index of data.\n");
+	//printf("[NOTICE]: Could not find index of data.\n");
 	return -1;
 
 }
