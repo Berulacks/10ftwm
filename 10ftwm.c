@@ -56,6 +56,7 @@ void printList ( linkedList list );
 /* --- End of List stuff --- */
 
 void setupWindows();
+int launch(char *program);
 void updateCurrentWindow(int index);
 void addWindow( xcb_window_t e );
 void toggleOSD();
@@ -67,6 +68,10 @@ void readFromFileAndConfigure(char* filename);
 void parseKeyValueConfigPair(char* key, char* value);
 
 char* strip( const char* str, const char* stripof);
+
+//Is the WM all set up
+//and running?
+int looping = 0;
 
 int joystick;
 bool hasJoystick;
@@ -142,6 +147,46 @@ void processInput(int argc, char **argv)
 	}
 }
 
+int launch(char *program)
+{
+    pid_t pid;
+    
+    pid = fork();
+    if (-1 == pid)
+    {
+        perror("fork");
+        return -1;
+    }
+    else if (0 == pid)
+    {
+        char *argv[2];
+
+        /* In the child. */
+        
+        /*
+         * Make this process a new process leader, otherwise the
+         * terminal will die when the wm dies. Also, this makes any
+         * SIGCHLD go to this process when we fork again.
+         */
+        if (-1 == setsid())
+        {
+            perror("setsid");
+            exit(1);
+        }
+        
+        argv[0] = program;
+        argv[1] = NULL;
+
+        if (-1 == execvp(program, argv))
+        {
+            perror("execve");            
+            exit(1);
+        }
+        exit(0);
+    }
+
+    return 0;
+}
 
 void readFromFileAndConfigure(char* filename)
 {
@@ -182,9 +227,34 @@ void readFromFileAndConfigure(char* filename)
 		
 		//Strip the incoming string of any trailing newline characters
 		//(Happens, I don't know why)
-		value = strip( value, "\n");
-	   
-		parseKeyValueConfigPair( line, value );
+		//
+		//Are we an exec function (run after the program started?)
+		if( strncmp("exec", line, strlen("exec")) == 0)
+		{
+			int len = strlen( value );
+			char* finalValue = malloc((len - 1) * sizeof(char));
+			int j = 0;
+			for(int i = 0; i < len; i++)
+			{
+				if(value[i] != '\n')
+				{
+					finalValue[j]=value[i];
+					j++;
+				}
+			}
+			finalValue[len-1]='\0';
+			parseKeyValueConfigPair( line, finalValue );
+			free(finalValue);
+		}
+		//Are we a normal configuration variable? Run before we start
+		//looping
+		else if(!looping)
+		{
+			value = strip(value, "\n");
+			parseKeyValueConfigPair(line,value);
+		}
+
+
 	}
 
 	if (line)
@@ -195,12 +265,12 @@ void readFromFileAndConfigure(char* filename)
 
 void parseKeyValueConfigPair(char* key, char* value)
 {
-	if( strncmp("screen", key, strlen("screen")) == 0 )
+	if( strncmp("screen", key, strlen("screen")) == 0 && !looping )
 	{
 		printf("[CONF] Opening on screen #%i\n", atoi(value));
 		screen_number = atoi(value);
 	}
-	else if( strncmp("display", key, strlen("display")) == 0 )
+	else if( strncmp("display", key, strlen("display")) == 0 && !looping  )
 	{
 		printf("[CONF] Opening on display: %s\n", value);
 		displayName = value;
@@ -227,6 +297,11 @@ void parseKeyValueConfigPair(char* key, char* value)
 	{
 		printf("[CONF] Joystick (controller) file to be read: %s\n", value);
 		js_fp = value;
+	}
+	else if( strncmp("exec", key, strlen("exec")) == 0 && looping  )
+	{
+		printf("EXECUTING %s\n", value);
+		launch(value);
 	}
 }
 
@@ -379,7 +454,9 @@ int main (int argc, char **argv)
 		printf("Failed to initialize lirc config!\n");
 
 
-	int looping = 1;
+	looping = 1;
+
+	readFromFileAndConfigure("10ftwmrc");
 
 	while(looping)
 		looping = loop();
