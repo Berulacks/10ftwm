@@ -46,7 +46,31 @@ Then run the included makefile.
 
     xinit ./10ftwm -d:1 -- :1
     
-#### lirc:
+======
+    
+### Configuration:
+
+10ftwm can be configured through a handy file called 10ftwmrc placed in the same directory as the executable. The file should contain simple key-value pairs:
+
+    key = value
+    key = value
+    (...) (ad infitum)
+    
+the currently support options are:
+
+    screen = int //The screen number to run on
+    display = string //The display name to run on
+    OSD_button = int //The gamepad button used to toggle the OSD
+    OSD_next_ws = int //The gamepad button used to switch to the next workspace
+    OSD_previous_ws = int
+    js_file = string //The file to open for the joystick. Defaults to /dev/input/js0
+    exec = string //Execute this program on launch.
+    exec = string
+    (...) (ad infinitum)
+
+======
+
+### lirc:
 
 10ftwm has full lirc support, simply create a ~/.lircrc file (or pass one in the config file {edit: TODO}) and map your buttons of choice to:
 
