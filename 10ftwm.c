@@ -298,6 +298,11 @@ void parseKeyValueConfigPair(char* key, char* value)
 		printf("[CONF] Joystick (controller) file to be read: %s\n", value);
 		js_fp = value;
 	}
+	else if( strncmp("lirc_file", key, strlen("lirc_file")) == 0 )
+	{
+		printf("[CONF] lirc (remote) file to be read: %s\n", value);
+		lirc_fp = value;
+	}
 	else if( strncmp("exec", key, strlen("exec")) == 0 && looping  )
 	{
 		printf("EXECUTING %s\n", value);
