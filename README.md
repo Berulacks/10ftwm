@@ -9,7 +9,7 @@ It also comes with a little on-screen-display that is toggled by pressing the ho
 
 ### Requirements:
 
-XCB is the only required library.
+XCB and lirc are required.
 
 
 ### Build instructions:
@@ -45,3 +45,29 @@ Then run the included makefile.
 **To launch through a plain old X server, first compile the program, then run:**
 
     xinit ./10ftwm -d:1 -- :1
+    
+#### lirc:
+
+10ftwm has full lirc support, simply create a ~/.lircrc file (or pass one in the config file {edit: TODO}) and map your buttons of choice to:
+
+* TOGGLE_OSD
+* NEXT_WORKSPACE
+* PREVIOUS_WORKSPACE
+
+for fine tuned control over 10ftwm. For those curious as to what buttons to use, you can use the "irw" utility to scan for button presses. Here's an example ~/.lircr file:
+
+    begin
+    	prog=mceusb
+    	button=KEY_OK
+    	config=TOGGLE_OSD
+    end
+    begin
+    	prog=mceusb
+    	button=KEY_RIGHT
+    	config=NEXT_WORKSPACE
+    end
+    begin
+    	prog=mceusb
+    	button=KEY_LEFT
+    	config=PREVIOUS_WORKSPACE
+    end
