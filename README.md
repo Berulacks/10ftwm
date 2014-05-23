@@ -14,7 +14,7 @@ XCB and lirc are required.
 
 ### Build instructions:
 
-    gcc 10ftwm.c -Wall -std=c99 -ggdb -lxcb -o 10ftwm && ./10ftwm
+    gcc 10ftwm.c -Wall -std=c99 -ggdb -lxcb -llirc_client -o 10ftwm && ./10ftwm
     
 ...or just run the included makefile.
 
