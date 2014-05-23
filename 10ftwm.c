@@ -15,6 +15,8 @@
 
 #include <linux/joystick.h>
 
+#include <lirc/lirc_client.h>
+
 #define OSD_FONT "12x24"
 //#define OSD_FONT "-urw-urw palladio l-medium-r-normal--0-0-0-0-p-0-iso8859-16"
 #define OSD_H_W 100
@@ -68,11 +70,15 @@ char* strip( const char* str, const char* stripof);
 
 int joystick;
 bool hasJoystick;
+bool haslirc;
 
 int gpKeyLastPressed[ GP_TOTAL_KEYS ];
 int gpKeyMap[ TOTAL_FUNCTIONS ];
 
 char* displayName;
+
+//LIRC
+struct lirc_config *lConfig;
 
 //CONFIG
 int screen_number;
@@ -95,8 +101,12 @@ xcb_font_t osdFont;
 //The graphics context used by the OSD
 xcb_gcontext_t osdGC;
 
+//The file to look for, for lIRC
+char* lirc_fp = "/dev/lirc0";
+//The file descriptor for lirc
+int lirc_fd = -1;
 //The file to look for, for reading controller values
-char* js_fd = "/dev/input/js0";
+char* js_fp = "/dev/input/js0";
 
 void processInput(int argc, char **argv)
 {
@@ -216,7 +226,7 @@ void parseKeyValueConfigPair(char* key, char* value)
 	else if( strncmp("js_file", key, strlen("js_file")) == 0 )
 	{
 		printf("[CONF] Joystick (controller) file to be read: %s\n", value);
-		js_fd = value;
+		js_fp = value;
 	}
 }
 
@@ -340,7 +350,7 @@ int main (int argc, char **argv)
 
 	hasJoystick = false;
 
-	joystick = open ("/dev/input/js0", O_RDONLY | O_NONBLOCK);
+	joystick = open (js_fp, O_RDONLY | O_NONBLOCK);
 	if(joystick >= 0)
 	{
 		printf("Found joystick!\n");
@@ -348,6 +358,25 @@ int main (int argc, char **argv)
 	}
 	else
 		printf("Could not find joystick :(\n");
+
+	
+	haslirc = false;
+
+	int fd =  lirc_init("mceusb",1); 
+	//Initialize LIRC
+	if(fd ==-1) 
+		printf("Lirc not detected!\n");;
+	
+	//TODO: Allow users to load their own config.
+	if(lirc_readconfig(NULL,&lConfig,NULL)==0)
+	{
+		printf("lirc config initialized!\n");
+		haslirc = true;
+		//lirc_fd = open(lirc_fp, O_RDONLY | O_NONBLOCK);
+		lirc_fd = fd;
+	}
+	else
+		printf("Failed to initialize lirc config!\n");
 
 
 	int looping = 1;
@@ -376,14 +405,17 @@ int loop()
 		FD_ZERO(&in);
 		FD_SET(fd, &in);
 
+		if(haslirc)
+			FD_SET(lirc_fd, &in);
+
 		if(hasJoystick)
-		{
-			int max = joystick > fd ? joystick : fd;
 			FD_SET(joystick, &in);
-			select(max+1, &in, NULL, NULL, NULL);
-		}
-		else
-			select(fd+1, &in, NULL,NULL,NULL);
+
+		int max = fd;
+		if(lirc_fd > max) max = lirc_fd;
+		if(joystick > max) max = joystick;
+
+		select(max+1, &in, NULL, NULL, NULL);
 
 		// #justeventthings
 		xcb_generic_event_t *ev;
@@ -520,6 +552,40 @@ int loop()
 					}
 					
 			}
+		}
+
+
+		if(haslirc && FD_ISSET(lirc_fd, &in) )
+		{
+			char *code;
+			char *string;
+			int ret;
+
+			lirc_nextcode(&code);
+			lirc_code2char(lConfig,code,&string);
+
+
+			if(string != NULL)
+			{
+				if(  strncmp("TOGGLE_OSD", string, strlen("TOGGLE_OSD")) == 0 ) 
+				{
+					printf("lirc toggle osd command received!\n");
+					toggleOSD();
+				}
+				else if(  strncmp("NEXT_WORKSPACE", string, strlen("NEXT_WORKSPACE")) == 0 ) 
+				{
+					printf("lirc next workspace command received!\n");
+					updateCurrentWindow(currentWindowIndex+1);
+				}
+				else if(  strncmp("PREVIOUS_WORKSPACE", string, strlen("PREVIOUS_WORKSPACE")) == 0 ) 
+				{
+					printf("lirc previous workspace command received!\n");
+					updateCurrentWindow(currentWindowIndex+1);
+				}
+				else
+					printf("Unkown lirc command: %s\n", string);
+			}
+
 		}
 
 
