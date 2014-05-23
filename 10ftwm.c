@@ -299,7 +299,7 @@ void parseKeyValueConfigPair(char* key, char* value)
 		printf("[CONF] Joystick (controller) file to be read: %s\n", value);
 		js_fp = value;
 	}
-	else if( strncmp("lirc_config", key, strlen("lirc_file")) == 0 )
+	else if( strncmp("lirc_config", key, strlen("lirc_config")) == 0 )
 	{
 		printf("[CONF] lirc (remote) configuration file to be used: %s\n", value);
 		lirc_fp = value;
