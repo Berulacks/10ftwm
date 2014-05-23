@@ -108,6 +108,7 @@ xcb_gcontext_t osdGC;
 
 //The file to look for, for lIRC
 char* lirc_fp = "/dev/lirc0";
+char* lirc_config = NULL;
 //The file descriptor for lirc
 int lirc_fd = -1;
 //The file to look for, for reading controller values
@@ -298,9 +299,9 @@ void parseKeyValueConfigPair(char* key, char* value)
 		printf("[CONF] Joystick (controller) file to be read: %s\n", value);
 		js_fp = value;
 	}
-	else if( strncmp("lirc_file", key, strlen("lirc_file")) == 0 )
+	else if( strncmp("lirc_config", key, strlen("lirc_file")) == 0 )
 	{
-		printf("[CONF] lirc (remote) file to be read: %s\n", value);
+		printf("[CONF] lirc (remote) configuration file to be used: %s\n", value);
 		lirc_fp = value;
 	}
 	else if( strncmp("exec", key, strlen("exec")) == 0 && looping  )
@@ -448,7 +449,7 @@ int main (int argc, char **argv)
 		printf("Lirc not detected!\n");;
 	
 	//TODO: Allow users to load their own config.
-	if(lirc_readconfig(NULL,&lConfig,NULL)==0)
+	if(lirc_readconfig(lirc_config ? lirc_config : NULL ,&lConfig,NULL)==0)
 	{
 		printf("lirc config initialized!\n");
 		haslirc = true;
