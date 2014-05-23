@@ -46,7 +46,9 @@ Then run the included makefile.
 
     xinit ./10ftwm -d:1 -- :1
     
-#### Configuration:
+======
+    
+### Configuration:
 
 10ftwm can be configured through a handy file called 10ftwmrc placed in the same directory as the executable. The file should contain simple key-value pairs:
 
@@ -66,7 +68,9 @@ the currently support options are:
     exec = string
     (...) (ad infinitum)
 
-#### lirc:
+======
+
+### lirc:
 
 10ftwm has full lirc support, simply create a ~/.lircrc file (or pass one in the config file {edit: TODO}) and map your buttons of choice to:
 
