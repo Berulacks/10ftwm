@@ -63,7 +63,8 @@ the currently support options are:
     OSD_button = int //The gamepad button used to toggle the OSD
     OSD_next_ws = int //The gamepad button used to switch to the next workspace
     OSD_previous_ws = int
-    js_file = string //The file to open for the joystick. Defaults to /dev/input/js0
+    js_file = string //The file to open for the joystick file descriptor. Defaults to /dev/input/js0
+    lirc_config = string //The path to your lirc configuration file, defaults to ~/lircrc or /etc/lircrc
     exec = string //Execute this program on launch.
     exec = string
     (...) (ad infinitum)
@@ -72,7 +73,7 @@ the currently support options are:
 
 ### lirc:
 
-10ftwm has full lirc support, simply create a ~/.lircrc file (or pass one in the config file {edit: TODO}) and map your buttons of choice to:
+10ftwm has full lirc support, simply create a ~/.lircrc file (or pass one in the config file) and map your buttons of choice to:
 
 * TOGGLE_OSD
 * NEXT_WORKSPACE
