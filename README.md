@@ -50,7 +50,7 @@ Then run the included makefile.
     
 ### Configuration:
 
-10ftwm can be configured through a handy file called 10ftwmrc placed in the same directory as the executable. The file should contain simple key-value pairs:
+10ftwm can be configured through a handy file called 10ftwmrc placed in the same directory as the executable, or .10ftwmrc placed in the users $HOME folder ( ~/.10ftwmrc ). The file should contain simple key-value pairs:
 
     key = value
     key = value
