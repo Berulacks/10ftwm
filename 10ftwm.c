@@ -64,7 +64,7 @@ int loop();
 
 //Init
 void processInput(int argc, char **argv);
-void readFromFileAndConfigure(char* filename);
+int readFromFileAndConfigure(char* filename);
 void parseKeyValueConfigPair(char* key, char* value);
 
 char* strip( const char* str, const char* stripof);
@@ -189,7 +189,7 @@ int launch(char *program)
     return 0;
 }
 
-void readFromFileAndConfigure(char* filename)
+int readFromFileAndConfigure(char* filename)
 {
 
 	FILE * fp;
@@ -201,7 +201,7 @@ void readFromFileAndConfigure(char* filename)
 	if (fp == NULL)
 	{
 		printf("Couldn't open configuration file!\n");
-		return;
+		return 0;
 	}
 	printf("Found configuration file '%s'!\n", filename);
 
@@ -262,6 +262,7 @@ void readFromFileAndConfigure(char* filename)
 	   free(line);
 
 	fclose(fp);
+	return 1;
 }
 
 void parseKeyValueConfigPair(char* key, char* value)
@@ -336,7 +337,7 @@ int main (int argc, char **argv)
 	xcb_generic_error_t *error;
 
 	processInput(argc, argv);
-	readFromFileAndConfigure("10ftwmrc");
+	//readFromFileAndConfigure("10ftwmrc");
 	
 	//Don't have a display name or number,
 	//so just go with what xcb gives us.
@@ -462,13 +463,32 @@ int main (int argc, char **argv)
 
 	looping = 1;
 
-	readFromFileAndConfigure("10ftwmrc");
+	char* home = getenv("HOME");
+
+	
+	//Check if there is a configuration file in the same
+	//directory as the executable
+	if(!readFromFileAndConfigure("10ftwmrc") && home)
+	{
+		//...if no config is found, and the user's home
+		//folder is known, try to load the config from there
+		printf("Couldn't find config in same directory as executable. Searching home for config: %s\n", home);
+
+		char toAppend[] = "/.10ftwmrc";
+
+		const size_t pathLength = strlen(home) + strlen(toAppend);
+		char *const rcPath = malloc(pathLength + 1);
+
+		strcpy(rcPath, home);
+		strcpy(rcPath + strlen(home), toAppend);
+
+		readFromFileAndConfigure(rcPath);
+		free(rcPath);
+	}
 
 	while(looping)
 		looping = loop();
 			
-
-
 	return 0;
 
 }
@@ -642,7 +662,6 @@ int loop()
 		{
 			char *code;
 			char *string;
-			int ret;
 
 			lirc_nextcode(&code);
 			lirc_code2char(lConfig,code,&string);
