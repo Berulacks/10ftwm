@@ -9,7 +9,7 @@ It also comes with a little on-screen-display that is toggled by pressing the ho
 
 ### Requirements:
 
-XCB and lirc are required.
+XCB and lirc are required libraries. 10ftwm only runs on Linux, sadly, because it uses Linux's joystick.h for controller input.
 
 
 ### Build instructions:
