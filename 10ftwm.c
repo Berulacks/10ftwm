@@ -39,22 +39,28 @@
 #define NEXT_WORKSPACE 1
 #define PREVIOUS_WORKSPACE 2
 
-
-
 /* --- List stuff --- */
 typedef struct node
 {
-    int data;
+    void* data;
     struct node* next;
 } linkedList;
 
-linkedList* createList(int data);
+typedef enum {
+    VOID,
+    INT,
+    STRING,
+    FLOAT
+} LIST_TYPE;
+
+linkedList* createList(void* data);
 int sizeOfList(linkedList head);
-int getFromList(linkedList head, int index);
-void appendToList(linkedList* head, int data);
+void * getFromList(linkedList head, int index);
+void appendToList(linkedList* head, void * data);
 void removeFromList(linkedList* head, int index);
-int indexOf( linkedList list, int data );
-void printList ( linkedList list );
+int indexOf( linkedList list, void * data, LIST_TYPE type );
+void printList ( linkedList list, LIST_TYPE type );
+
 /* --- End of List stuff --- */
 
 void setupWindows();
@@ -560,7 +566,7 @@ int loop()
 
                     printf("Received window destroy notification for window %i.\n", e->window);
 
-                    int index = indexOf( windowList, e->window ); 
+                    int index = indexOf( windowList, &(e->window), INT ); 
                     if(index == -1)
                     {
                         printf("    Could not find window %i in list.\n", e->window);
@@ -597,7 +603,7 @@ int loop()
                     xcb_map_notify_event_t *e;
                     e = (xcb_map_notify_event_t *) ev;
 
-                    if( indexOf( windowList, e->window ) == -1 && e->window != osd)
+                    if( indexOf( windowList, &(e->window), INT ) == -1 && e->window != osd)
                     {
                         addWindow(e->window);
                         printf("Received map notify for window %i.\n", e->window);
@@ -714,7 +720,7 @@ void updateCurrentWindow(int index)
     printf("Bringing window %i to front\n", currentWindowIndex);
 
     uint32_t values[] = { XCB_STACK_MODE_ABOVE };
-    xcb_configure_window (connection, getFromList( windowList, currentWindowIndex ), XCB_CONFIG_WINDOW_STACK_MODE, values);
+    xcb_configure_window (connection, *((int*)getFromList( windowList, currentWindowIndex )), XCB_CONFIG_WINDOW_STACK_MODE, values);
     
 
     if( osdActive)
@@ -774,7 +780,13 @@ void addWindow( xcb_window_t window )
 
     xcb_configure_window( connection, window, mask, values);
     cookie = xcb_map_window(connection, window);
-    appendToList(&windowList, window);
+
+    //Man... why did I have to use generics for this?
+    //This is a pain... perhaps I should just switch back to storing ints?
+    //But, yes, here we're storing 'window' in the list.
+    void* toStore = malloc( sizeof(xcb_window_t) );
+    *((xcb_window_t*)toStore) = window;
+    appendToList(&windowList, toStore);
 
     if( osdActive)
     {
@@ -790,8 +802,8 @@ void addWindow( xcb_window_t window )
     else
         xcb_flush(connection);
 
-    printf("Added window %i into position %i. There are now a total of %i windows.\n", window, indexOf( windowList, window ), sizeOfList(windowList) );
-    updateCurrentWindow( indexOf( windowList, window ) );
+    printf("Added window %i into position %i. There are now a total of %i windows.\n", window, indexOf( windowList, &window, INT ), sizeOfList(windowList) );
+    updateCurrentWindow( indexOf( windowList, &window, INT ) );
 
 
 }
@@ -835,7 +847,7 @@ char* strip (const char *str, const char *stripof)
 }
 
 /* --- LIST STUFF --- */
-linkedList* createList(int data)
+linkedList* createList(void* data)
 {
     linkedList* x = malloc( sizeof( linkedList ) );
     x->data = data;
@@ -846,8 +858,9 @@ linkedList* createList(int data)
 
 int sizeOfList(linkedList head)
 {
-    if(isnan(head.data) || isinf(head.data) )
-        return 0;
+    //if(isnan(head.data) || isinf(head.data) )
+    //    return 0;
+    if( head.data == NULL ) return 0;
 
     int size = 1;
     linkedList* x = &head;    
@@ -861,26 +874,36 @@ int sizeOfList(linkedList head)
     return size;
 }
 
-int getFromList(linkedList head, int index)
+void* getFromList(linkedList head, int index)
 {
     if(index >= sizeOfList(head))
     {
         printf("ERROR: index out of range\n");
         //This will always break something since we only ever
         //use lists with unsigned ints.
-        return -1;
+        return NULL;
     }
 
     linkedList* x = &head;
 
-    for(int i = 0; i <= index; i++)
+    for(int i = 0; i < index; i++)
         x = x->next;
 
     return x->data;
 }
 
-void appendToList(linkedList* head, int data)
+void appendToList(linkedList* head, void* data)
 {
+    
+    //Sanity check to see if our list was
+    //not initialized with any data
+    //e.g. if we didn't use "createList"
+    if( head->data == NULL )
+    {
+        head->data = data;
+        return;
+    }
+
     linkedList* x = malloc( sizeof(linkedList) );
     x->data = data;
     x->next = NULL;
@@ -902,55 +925,141 @@ void appendToList(linkedList* head, int data)
 void removeFromList(linkedList* head, int index)
 {
     int size = sizeOfList(*head);
+
     if(size == 0)
         return;
+
     if( size == 1 )
     {
-        head->next = NULL;
+        head->data = NULL;
+        return;
+    }
+
+    //If we're trying to remove the first
+    //element of a list with more than one
+    //element.
+    if( index == 0 )
+    {
+        linkedList* toReplace = head->next;
+
+        head->data = toReplace->data;
+        head->next = toReplace->next;
+
+        toReplace->next = NULL;
+        free( toReplace );
+
         return;
     }
 
     linkedList* x = head;
 
-    //If we're at the end of the list
-    //then stop iterating at the
-    //penultimate member
-    if(index == size-1)
-        index--;
-
-    for( int i = 0; i <= index; i++)
+    //Iterate until we get to the member
+    //before the one we're trying to remove
+    for( int i = 0; i < index - 1 ; i++)
         x = x->next;
 
+    //The member we're actually removing.
     linkedList* toDie = x->next;
-    x->next = toDie->next;
+
+    if( index != size - 1)
+        x->next = toDie->next;
+    else
+        x->next = NULL;
     
     toDie->next = NULL;
     free(toDie);
 }
 
-int indexOf( linkedList list, int data )
+int indexOf( linkedList list, void* data, LIST_TYPE type )
 {
     int index;
     int size = sizeOfList(list);
     linkedList* x = &list;
-    //printf("***\nSearching for match for %i...\n", data);
+    
+    //Debugging stuff (assumes we have only ints in the list)
+    //printf("***\nSearching for match for %i...\n", *(int*)data);
+    //printf("*** Size is %i\n", size);
+
 
     for(index = 0; index < size; index++)
     {
+
+        int i1,i2;
+        float f1,f2;
+        char *c1, *c2;
+
+        //I'm not crazy about this,
+        //but I honestly have no idea what
+        //the most efficient way would be
+        //to get this kind of behaviour in C
+        switch( type )
+        {
+            case VOID:
+
+                if(x->data == data)
+                    return index;
+
+                break;
+
+            case INT:
+
+                i1 = *(int*) data;
+                i2 = *(int*) x->data;
+
+                if( i1 == i2 )
+                    return index;
+
+                break;
+
+            case STRING:
+
+                //Yeah, this most likely needs to change.
+                c1 = (char*) data;
+                c2 = (char*) x->data;
+
+                if( c1 == c2 )
+                    return index;
+
+                break;
+
+            case FLOAT:
+
+                f1 = *(float*) data;
+                f2 = *(float*) x->data;
+
+                if( f1 == f2 )
+                    return index;
+
+                break;
+
+        }
+
         x = x->next;
-        if(x->data == data)
-            return index;
     }    
-    //printf("[NOTICE]: Could not find index of data.\n");
+
     return -1;
 
 }
 
-void printList ( linkedList list )
+void printList ( linkedList list, LIST_TYPE type)
 {
     int size = sizeOfList(list);
     printf("List has size of %i, and contains the data:\n", size);
     for(int i = 0; i < size; i++)
-        printf("[ %i ]\n", getFromList(list, i) );
+        switch( type )
+        {
+            case VOID:
+                printf("[ %p ]\n", getFromList(list, i) );
+                break;
+            case INT:
+                printf("[ %i ]\n", *(int*) (getFromList(list, i) ));
+                break;
+            case STRING:
+                printf("[ %s ]\n", (char*) (getFromList(list, i) ));
+                break;
+            case FLOAT:
+                printf("[ %f ]\n", *(float*) (getFromList(list, i) ));
+                break;
+        }
 }
 /* --- END OF LIST STUFF --- */
