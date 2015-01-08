@@ -38,9 +38,11 @@ The screen number to open. Default is 0.
 
 **To launch with Xephyr just open a terminal and type:**
 
-     xephyr -screen 1024x768 -br :1
+    xephyr -screen 1024x768 -br :1
 
-Then run the included makefile.
+Then run the included make file. For your convenience, I've included a test option in the makefile, just run:
+
+    make test
 
 **To launch through a plain old X server, first compile the program, then run:**
 
