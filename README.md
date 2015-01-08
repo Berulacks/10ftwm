@@ -3,9 +3,9 @@
 
 A lightweight window manager designed to be used with media centers and other "10 foot" devices.
 
-10ftwm is a fairly new project, but it aims to simplify the management of fullscreen applications in environments where a keyboard might not be available (e.g. a home-theater PC). In its current (very rough) state, the program allows you to change windows using a gamepad (or whatever is in /dev/input/js0) or keyboard.
+10ftwm is a fairly new project, but it aims to simplify the management of fullscreen applications in environments where a keyboard might not be available (e.g. a home-theater PC). In its current (very rough) state, the program allows you to change windows using a gamepad (or whatever is in /dev/input/js0), keyboard, or IR remote control.
 
-It also comes with a little on-screen-display that is toggled by pressing the home button on your gamepad. 
+It also comes with a little on-screen-display that is toggled by pressing the home button on your gamepad, SHIFT+UP on your keyboard, or whatever button you defined with lirc. 
 
 ### Requirements:
 
