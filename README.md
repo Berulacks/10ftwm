@@ -68,7 +68,7 @@ the currently support options are:
     js_file = string //The file to open for the joystick file descriptor. Defaults to /dev/input/js0
     lirc_config = string //The path to your lirc configuration file, defaults to ~/lircrc or /etc/lircrc
     exec = string //Execute this program on launch.
-    exec = string
+    exec = string //You may have as many exec statements as you'd like, they will be executed in order
     (...) (ad infinitum)
 
 ======
