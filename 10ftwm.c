@@ -23,7 +23,8 @@
 
 //Keypoard buttons
 #define L_SHIFT 40
-#define UP 111
+#define UP_ARROW 111
+#define D_ARROW 116
 #define R_ARROW 114
 #define L_ARROW 113
 
@@ -34,10 +35,11 @@
 #define GP_KEY_HOME 8
 
 //Function modifiers
-#define TOTAL_FUNCTIONS 3
+#define TOTAL_FUNCTIONS 4
 #define SHOW_OSD 0
 #define NEXT_WORKSPACE 1
 #define PREVIOUS_WORKSPACE 2
+#define REMOVE_WINDOW 3
 
 /* --- List stuff --- */
 typedef struct node
@@ -67,6 +69,7 @@ void setupWindows();
 int launch(char *program);
 void updateCurrentWindow(int index);
 void addWindow( xcb_window_t e );
+void destroyWindow( const unsigned int index );
 void toggleOSD();
 int loop();
 
@@ -303,6 +306,11 @@ void parseKeyValueConfigPair(char* key, char* value)
         gpKeyMap[ PREVIOUS_WORKSPACE ] = atoi(value);
     }
 
+    else if( strncmp("OSD_remove_window", key, strlen("OSD_remove_window")) == 0 )
+    {
+        printf("[CONF] Gamepad OSD Remove Window Button set to button#%i\n", atoi(value));
+        gpKeyMap[ REMOVE_WINDOW ] = atoi(value);
+    }
     else if( strncmp("js_file", key, strlen("js_file")) == 0 )
     {
         printf("[CONF] Joystick (controller) file to be read: %s\n", value);
@@ -404,7 +412,10 @@ int main (int argc, char **argv)
     xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_SHIFT, L_ARROW,
          XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
-    xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_SHIFT, UP,
+    xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_SHIFT, UP_ARROW,
+         XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+
+    xcb_grab_key(connection, 1, mainGC, XCB_MOD_MASK_SHIFT, D_ARROW,
          XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
     xcb_grab_button(connection, 0, mainGC, XCB_EVENT_MASK_BUTTON_PRESS |
@@ -554,7 +565,10 @@ int loop()
                             updateCurrentWindow(currentWindowIndex+1);
                         if(e->detail == L_ARROW)
                             updateCurrentWindow(currentWindowIndex-1);
-                        if(e->detail == UP)
+                        if(e->detail == D_ARROW)
+                            destroyWindow(currentWindowIndex);
+
+                        if(e->detail == UP_ARROW)
                             toggleOSD();
                 }
                 break;
@@ -651,6 +665,8 @@ int loop()
                         {
                                 toggleOSD();
                         }
+                        else if(event.number == gpKeyMap[REMOVE_WINDOW])
+                            destroyWindow( currentWindowIndex );
                     }
                     gpKeyLastPressed[ event.number ] = 1;
                 }
@@ -691,6 +707,11 @@ int loop()
                 {
                     printf("lirc previous workspace command received!\n");
                     updateCurrentWindow(currentWindowIndex-1);
+                }
+                else if(  strncmp("REMOVE_WINDOW", string, strlen("REMOVE_WINDOW")) == 0 ) 
+                {
+                    printf("lirc remove window command received!\n");
+                    destroyWindow(currentWindowIndex);
                 }
                 else
                     printf("Unkown lirc command: %s\n", string);
@@ -766,6 +787,31 @@ void toggleOSD()
     }
 
     xcb_flush(connection);
+}
+
+void destroyWindow( const unsigned int index )
+{
+
+
+    xcb_window_t window = *((int*)getFromList( windowList, index )) ;
+    xcb_void_cookie_t cookie = xcb_destroy_window(connection, window);
+    xcb_generic_error_t* error = xcb_request_check( connection, cookie );
+
+    if(error != NULL)
+    {
+        printf("Something went wrong while removing a window!\n");
+        free( error );
+    }
+
+    removeFromList( &windowList, index);
+    int numWindows = sizeOfList(windowList);
+    printf("Removed window %i from list. There are now a total of %i windows.\n", index, sizeOfList(windowList) );
+
+    if(currentWindowIndex >= numWindows)
+        currentWindowIndex = numWindows-1;     
+    else
+        if(currentWindowIndex < 0)
+            currentWindowIndex = 0;
 }
 
 void addWindow( xcb_window_t window )
