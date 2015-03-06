@@ -645,7 +645,7 @@ int loop()
                         }
                         else if(event.number == gpKeyMap[PREVIOUS_WORKSPACE])
                         {
-                                updateCurrentWindow(currentWindowIndex-1);
+                            updateCurrentWindow(currentWindowIndex-1);
                         }
                         else if(event.number == gpKeyMap[SHOW_OSD])
                         {
@@ -690,7 +690,7 @@ int loop()
                 else if(  strncmp("PREVIOUS_WORKSPACE", string, strlen("PREVIOUS_WORKSPACE")) == 0 ) 
                 {
                     printf("lirc previous workspace command received!\n");
-                    updateCurrentWindow(currentWindowIndex+1);
+                    updateCurrentWindow(currentWindowIndex-1);
                 }
                 else
                     printf("Unkown lirc command: %s\n", string);
