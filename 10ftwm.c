@@ -792,6 +792,11 @@ void toggleOSD()
 void destroyWindow( const unsigned int index )
 {
 
+    if( sizeOfList( windowList ) <= 0 )
+    {
+        printf("[Warning] Trying to remove a window when there are none!\n");
+        return;
+    }
 
     xcb_window_t window = *((int*)getFromList( windowList, index )) ;
     xcb_void_cookie_t cookie = xcb_destroy_window(connection, window);
@@ -812,6 +817,8 @@ void destroyWindow( const unsigned int index )
     else
         if(currentWindowIndex < 0)
             currentWindowIndex = 0;
+
+    updateCurrentWindow( currentWindowIndex );
 }
 
 void addWindow( xcb_window_t window )
