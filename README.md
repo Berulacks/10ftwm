@@ -65,6 +65,7 @@ the currently support options are:
     OSD_button = int //The gamepad button used to toggle the OSD
     OSD_next_ws = int //The gamepad button used to switch to the next workspace
     OSD_previous_ws = int
+    OSD_remove_window = int //The gamepad button used to kill a window
     js_file = string //The file to open for the joystick file descriptor. Defaults to /dev/input/js0
     lirc_config = string //The path to your lirc configuration file, defaults to ~/lircrc or /etc/lircrc
     exec = string //Execute this program on launch.
@@ -80,6 +81,7 @@ the currently support options are:
 * TOGGLE_OSD
 * NEXT_WORKSPACE
 * PREVIOUS_WORKSPACE
+* REMOVE_WINDOW
 
 for fine tuned control over 10ftwm. For those curious as to what buttons to use, you can use the "irw" utility to scan for button presses. Here's an example ~/.lircr file:
 
