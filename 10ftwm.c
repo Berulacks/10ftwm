@@ -6,6 +6,7 @@
 #include <ctype.h>
 
 #include <xcb/xcb.h>
+#include <xcb/xcb_ewmh.h>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -468,7 +469,6 @@ int main (int argc, char **argv)
     if(fd ==-1) 
         printf("Lirc not detected!\n");;
     
-    //TODO: Allow users to load their own config.
     if(lirc_readconfig(lirc_config ? lirc_config : NULL ,&lConfig,NULL)==0)
     {
         printf("lirc config initialized!\n");
@@ -504,6 +504,8 @@ int main (int argc, char **argv)
         readFromFileAndConfigure(rcPath);
         free(rcPath);
     }
+
+    //xcb_ewmh_set_desktop_geometry( xcb_ewmh_connection, 0, 1920, 1080 );
 
     while(looping)
         looping = loop();
@@ -719,6 +721,7 @@ int loop()
 
         }
 
+        free( ev );
 
         return 1;
 
@@ -750,6 +753,7 @@ void updateCurrentWindow(int index)
     //This only works for numbers 0-9, should be changed in the future!
     char curPos = (char)(((int)'0')+currentWindowIndex);
     xcb_image_text_8(connection, sizeof(curPos), osd, osdGC, OSD_H_W/2, OSD_H_W/2, &curPos);
+    xcb_set_input_focus( connection, XCB_INPUT_FOCUS_PARENT, *((int*)getFromList( windowList, currentWindowIndex )), XCB_CURRENT_TIME );
 
     xcb_flush(connection);
 }
@@ -823,13 +827,16 @@ void destroyWindow( const unsigned int index )
 
 void addWindow( xcb_window_t window )
 {
-    uint32_t mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-    uint32_t values[2];
+    uint32_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    uint32_t values[4];
     xcb_void_cookie_t cookie;
     xcb_generic_error_t *error;
 
-    values[0] = screen->width_in_pixels;
-    values[1] = screen->height_in_pixels;
+    values[0] = 0;
+    values[1] = 0;
+
+    values[2] = screen->width_in_pixels;
+    values[3] = screen->height_in_pixels;
 
     xcb_configure_window( connection, window, mask, values);
     cookie = xcb_map_window(connection, window);
