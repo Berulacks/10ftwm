@@ -238,35 +238,8 @@ int readFromFileAndConfigure(char* filename)
             value = strtok(NULL, " ");
         }
         
-        //Strip the incoming string of any trailing newline characters
-        //(Happens, I don't know why)
-        //
-        //Are we an exec function (run after the program started?)
-        if( strncmp("exec", line, strlen("exec")) == 0)
-        {
-            int len = strlen( value );
-            char* finalValue = malloc((len - 1) * sizeof(char));
-            int j = 0;
-            for(int i = 0; i < len; i++)
-            {
-                if(value[i] != '\n')
-                {
-                    finalValue[j]=value[i];
-                    j++;
-                }
-            }
-            finalValue[len-1]='\0';
-            parseKeyValueConfigPair( line, finalValue );
-            free(finalValue);
-        }
-        //Are we a normal configuration variable? Run before we start
-        //looping
-        else if(!looping)
-        {
-            value = strip(value, "\n");
-            parseKeyValueConfigPair(line,value);
-        }
-
+        value = strip(value, "\n");
+        parseKeyValueConfigPair(line,value);
 
     }
 
