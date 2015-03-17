@@ -694,8 +694,6 @@ int loop()
 
         }
 
-        free( ev );
-
         return 1;
 
 }
