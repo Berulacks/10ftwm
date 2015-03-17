@@ -874,6 +874,12 @@ char* strip (const char *str, const char *stripof)
         }
     }
 
+    //Required or else, for some odd reason,
+    //our incoming string ends up with garbage
+    //chars at the end. Really odd.
+    //(I've only seen this happen on Debian Wheezy)
+    final[i-1] = '\0';
+
     return final;
 }
 
