@@ -469,7 +469,7 @@ int main (int argc, char **argv)
         char toAppend[] = "/.10ftwmrc";
 
         const size_t pathLength = strlen(home) + strlen(toAppend);
-        char *const rcPath = malloc(pathLength + 1);
+        char *const rcPath = malloc( sizeof(char) * (pathLength + 1) );
 
         strcpy(rcPath, home);
         strcpy(rcPath + strlen(home), toAppend);
@@ -857,7 +857,7 @@ char* strip (const char *str, const char *stripof)
             if(str[i] == stripof[j])
                 occurences++;
 
-    final = malloc(length-occurences);
+    final = malloc( sizeof(char) * (length-occurences) );
     j = 0;
 
     for (i = 0; i < length; i++)
