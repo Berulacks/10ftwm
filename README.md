@@ -7,6 +7,8 @@ A lightweight window manager designed to be used with media centers and other "1
 
 It also comes with a little on-screen-display that is toggled by pressing the home button on your gamepad, SHIFT+UP on your keyboard, or whatever button you defined with lirc. 
 
+#### Note: 10ftwm is, for all intents and purposes, dead. It was a fun little utility I wrote because I needed a WM for my HTPC, and was very useable for the ~3 years I had it running on my machine. If you're reading this now, the program is still fully functional, just bereft of most features that would make it useful. But if the use case is there (a WM that forces every app to be fullscreen and on its own "space" with built in lirc support) then this could be useful for you. 
+
 ### Requirements:
 
 XCB and lirc are required libraries. 10ftwm only runs on Linux, sadly, because it uses Linux's joystick.h for controller input.
@@ -76,7 +78,7 @@ the currently support options are:
 
 ### lirc:
 
-10ftwm has full lirc support, simply create a ~/.lircrc file (or pass one in the config file) and map your buttons of choice to:
+10ftwm has lirc support, simply create a ~/.lircrc file (or pass one in the config file) and map your buttons of choice to:
 
 * TOGGLE_OSD
 * NEXT_WORKSPACE
